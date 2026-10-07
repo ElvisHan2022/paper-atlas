@@ -507,9 +507,17 @@ $("#suggestions").addEventListener("click", e => {
 
 // ---- lens + sources ----
 async function loadOptions() {
-  try { state.options = await (await fetch("/api/options")).json(); }
-  catch { return; }
-  const o = state.options;
+  let o = null;
+  try {
+    const res = await fetch("/api/options");
+    if (res.ok) o = await res.json();
+  } catch { /* server not reachable; startSearch reports that */ }
+  if (!o || !o.lenses || !o.sources) {
+    // An older app.py is still running: searches still work, without lens/source choices.
+    $("#form-error").textContent = "The app server is out of date. Stop it (Ctrl+C) and run python app.py again.";
+    return;
+  }
+  state.options = o;
   state.lens = o.lenses[store.get("lens", "balanced")] ? store.get("lens", "balanced") : "balanced";
   const saved = store.get("sources", Object.keys(o.sources)).filter(s => o.sources[s]);
   state.sources = saved.length ? saved : Object.keys(o.sources);
@@ -595,7 +603,7 @@ async function startSearch(text) {
   $("#run-query").textContent = query;
   $("#run-sub").textContent = "Starting…";
   const o = state.options;
-  $("#run-context").textContent = o ? `${o.lenses[state.lens].label} lens · ${state.sources.map(x => o.sources[x]).join(", ")}` : "";
+  $("#run-context").textContent = o ? `${(o.lenses[state.lens] || {}).label || "Balanced"} lens · ${state.sources.map(x => o.sources[x] || x).join(", ")}` : "";
   $("#run-error").hidden = true;
   $("#loader").classList.remove("stopped", "finished");
   renderStages(["Processing your query", "Identifying candidate papers", "Scoring the papers", "Finishing scoring"], 0, "running", "");
@@ -954,6 +962,15 @@ function renderRubric(r) {
 }
 
 // ---------------- start ----------------
+// Never fail silently: show unexpected page errors where the person is looking.
+function showPageError(msg) {
+  const where = !$("#home").hidden ? "#form-error" : null;
+  if (where) $(where).textContent = "Something went wrong in the page: " + msg;
+  console.error(msg);
+}
+window.addEventListener("error", e => showPageError(e.message));
+window.addEventListener("unhandledrejection", e => showPageError(e.reason && e.reason.message || String(e.reason)));
+
 const m = location.hash.match(/^#run=(.+)$/);
 loadOptions();
 if (m) openRun(decodeURIComponent(m[1])); else { loadRecent(); q.focus(); }
