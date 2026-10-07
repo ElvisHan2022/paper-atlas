@@ -12,7 +12,22 @@ copy .env.example .env        # then paste your ANTHROPIC_API_KEY into .env (mac
 pytest
 ```
 
-## Demo
+## Search UI
+
+```bash
+python app.py
+```
+
+This opens http://127.0.0.1:8000. Type a topic or a few keywords, and the app:
+
+1. **Processes your query.** Claude restates it as a topic and writes relevance criteria.
+2. **Identifies candidate papers.** It pulls the top 100 Semantic Scholar matches that have abstracts.
+3. **Scores the papers.** MiniLM and BGE score all 100 locally; the top 30 go to the LLM judge.
+4. **Finishes scoring.** It ranks the papers, extracts the top 10, writes the review, and groups the candidates into topics.
+
+Results open in four tabs: **Candidate papers** (the top 10 with scores and the judge's reasoning), **Systematic review** (five sections: study design, methods, results, limitations, discussion; each claim links back to its papers), **Topic clusters** (a line chart of papers per topic over time), and **Scoring rubric** (how the papers were ranked). Finished searches are saved in `outputs/runs/` and listed under "Recent searches". A typical search costs a few cents.
+
+## Demo (command line)
 
 ```bash
 python run_all.py --topic "LLM evaluation and reliability for clinical and health text"
