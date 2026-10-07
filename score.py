@@ -35,6 +35,35 @@ Abstract: {abstract}
 
 Reply with JSON only: {{"score": <integer 1-5>, "rationale": "<one sentence>"}}"""
 
+# Used only by the web app's evidence lens. The plain prompt above stays unchanged so
+# evaluate.py results remain comparable.
+LENS_PROMPT = """Topic: {topic}
+
+Relevance criteria: {criteria}
+
+Rubric for "score" (relevance to the topic):
+1 = unrelated
+2 = tangential
+3 = related background
+4 = relevant
+5 = core
+
+Evidence lens: {lens_label}. {lens_criteria}
+Rubric for "lens_score" (how well the paper's evidence fits this lens, judged only from what
+the title, abstract, venue and publication types show):
+1 = does not fit
+2 = weak fit
+3 = partial fit
+4 = good fit
+5 = exemplary fit
+
+Paper title: {title}
+Venue: {venue} ({year})
+Publication types: {types}
+Abstract: {abstract}
+
+Reply with JSON only: {{"score": <integer 1-5>, "lens_score": <integer 1-5>, "rationale": "<one sentence covering both>"}}"""
+
 
 def query_text(topic, criteria):
     """Every scorer sees the same query, so the comparison is fair."""
@@ -98,23 +127,38 @@ def valid_llm_score(data):
     return isinstance(data.get("score"), int) and 1 <= data["score"] <= 5
 
 
-def judge(topic, criteria, p):
-    """LLM judge for one paper: (score in [0, 1] or None, rationale, stats).
+def valid_lens_score(data):
+    return valid_llm_score(data) and isinstance(data.get("lens_score"), int) \
+        and 1 <= data["lens_score"] <= 5
 
-    The rubric score 1-5 is normalized as (score - 1) / 4; None after two bad replies.
+
+def judge(topic, criteria, p, lens=None):
+    """LLM judge for one paper: (score, rationale, stats, lens_score).
+
+    Rubric scores 1-5 are normalized as (score - 1) / 4. Scores are None after two bad
+    replies; lens_score is None unless an evidence lens (a config.LENSES entry) is given.
     """
-    prompt = LLM_PROMPT.format(topic=topic, criteria=criteria,
-                               title=p["title"], abstract=p["abstract"])
-    data, stats = llm.ask_json(LLM_SYSTEM, prompt, config.LLM_MAX_TOKENS_SCORE,
-                               valid_llm_score)
+    if lens and lens.get("criteria"):
+        prompt = LENS_PROMPT.format(
+            topic=topic, criteria=criteria, lens_label=lens["label"],
+            lens_criteria=lens["criteria"], title=p["title"], abstract=p["abstract"],
+            venue=p.get("venue") or "unknown venue", year=p.get("year") or "year unknown",
+            types=", ".join(p.get("publicationTypes") or []) or "not listed")
+        validate = valid_lens_score
+    else:
+        prompt = LLM_PROMPT.format(topic=topic, criteria=criteria,
+                                   title=p["title"], abstract=p["abstract"])
+        validate = valid_llm_score
+    data, stats = llm.ask_json(LLM_SYSTEM, prompt, config.LLM_MAX_TOKENS_SCORE, validate)
     if not data:
-        return None, None, stats
-    return (data["score"] - 1) / 4, data.get("rationale"), stats
+        return None, None, stats, None
+    lens_score = (data["lens_score"] - 1) / 4 if "lens_score" in data and lens else None
+    return (data["score"] - 1) / 4, data.get("rationale"), stats, lens_score
 
 
 def score_llm(conn, topic, criteria, papers):
     for p in tqdm(papers, desc="llm"):
-        score, rationale, stats = judge(topic, criteria, p)
+        score, rationale, stats, _ = judge(topic, criteria, p)
         db.save_score(conn, p["paper_id"], topic, "llm", score, rationale, **stats)
         conn.commit()
 
