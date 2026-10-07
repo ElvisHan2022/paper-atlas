@@ -63,6 +63,7 @@ WEB_LLM_SHORTLIST = 30      # only the top cross-encoder hits go to the LLM judg
 WEB_TOP_N = 10              # papers shown, extracted, and reviewed
 WEB_WORKERS = 6             # parallel LLM calls
 REVIEW_MODEL = LLM_MODEL    # model that writes the systematic review
+VERIFY_MODEL = LLM_MODEL    # independent checker; a stronger model here is a cheap upgrade
 LLM_MAX_TOKENS_REVIEW = 4000
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"  # bi-encoder for topic clusters
 CLUSTER_K_RANGE = (2, 5)    # try this many topic clusters, keep the best silhouette

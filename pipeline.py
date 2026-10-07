@@ -5,6 +5,8 @@ is how this file tells the browser how far along it is.
 """
 import json
 import sqlite3
+import threading
+import time
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -66,7 +68,8 @@ def understand_query(query):
             'kinds of papers count as relevant>"}}')
     data, stats = llm.ask_json(
         system, user, 300,
-        lambda d: isinstance(d.get("topic"), str) and isinstance(d.get("criteria"), str))
+        lambda d: isinstance(d.get("topic"), str) and isinstance(d.get("criteria"), str),
+        cache=True)
     if not data:  # keep going with a plain fallback rather than failing the search
         return query, f"Papers whose main contribution addresses: {query}.", stats
     return data["topic"].strip() or query, data["criteria"].strip(), stats
@@ -79,7 +82,7 @@ def judge_many(topic, criteria, papers, on_done, lens=None):
     llm.client()  # create the shared client once, before the threads start
     out = {}
     with ThreadPoolExecutor(max_workers=config.WEB_WORKERS) as pool:
-        futures = {pool.submit(score.judge, topic, criteria, p, lens): p["paper_id"]
+        futures = {pool.submit(score.judge, topic, criteria, p, lens, True): p["paper_id"]
                    for p in papers}
         for f in as_completed(futures):
             out[futures[f]] = f.result()
@@ -107,7 +110,7 @@ def rank_key(p):
 def extract_many(papers, on_done):
     out = {}
     with ThreadPoolExecutor(max_workers=config.WEB_WORKERS) as pool:
-        futures = {pool.submit(extract.extract_one, p): p["paper_id"] for p in papers}
+        futures = {pool.submit(extract.extract_one, p, True): p["paper_id"] for p in papers}
         for f in as_completed(futures):
             out[futures[f]] = f.result()  # (data or None, source_text_kind, stats)
             on_done(len(out))
@@ -153,7 +156,7 @@ Write a short systematic review of these papers. Return JSON only, with keys "ov
     system = ("You write concise, evidence-based systematic reviews for busy researchers. "
               "You only state what the provided facts support.")
     data, stats = llm.ask_json(system, user, config.LLM_MAX_TOKENS_REVIEW, valid_review,
-                               model=config.REVIEW_MODEL)
+                               model=config.REVIEW_MODEL, cache=True)
     if not data:
         raise PipelineError("The review could not be written (the model returned invalid "
                             "JSON twice). Try the search again.")
@@ -162,6 +165,94 @@ Write a short systematic review of these papers. Return JSON only, with keys "ov
          "key_points": [str(x) for x in data[key]["key_points"]]}
         for key, title in REVIEW_SECTIONS]}
     return review, stats
+
+
+# ---------- independent verification of the review ----------
+
+VERIFY_SYSTEM = (
+    "You are an independent fact-checker for systematic reviews. You did not write the "
+    "review you are checking, and you have no stake in it being right. You judge claims only "
+    "against the source excerpts you are given, never against outside knowledge.")
+
+VERIFY_PROMPT = """Section of a systematic review: {title}
+
+{text}
+
+Sources for the papers this section cites (abstracts and evidence quotes taken directly from
+the papers):
+
+{sources}
+
+Audit every factual claim in the section that cites a paper. For each claim, check it against
+the cited papers' sources above and nothing else. A claim is:
+- "supported" if the cited sources clearly state it,
+- "partial" if they support part of it or a weaker version,
+- "unsupported" if they don't say it, contradict it, or the citation points to the wrong paper.
+Report outcomes faithfully: do not round "partial" up to "supported". If a cited number has no
+source above, the claim is unsupported.
+
+Return JSON only:
+{{"claims": [{{"claim": "<the claim, at most 25 words>", "cites": [<paper numbers>],
+  "verdict": "supported" | "partial" | "unsupported", "reason": "<one sentence pointing to the source text>"}}]}}"""
+
+VERDICTS = ("supported", "partial", "unsupported")
+
+
+def cited_numbers(text):
+    """Paper numbers cited as [3] or [2, 7] in a piece of review text."""
+    found = set()
+    for group in re.findall(r"\[(\d+(?:\s*,\s*\d+)*)\]", text):
+        found.update(int(n) for n in re.findall(r"\d+", group))
+    return sorted(found)
+
+
+def valid_check(d):
+    claims = d.get("claims")
+    return isinstance(claims, list) and all(
+        isinstance(c, dict) and c.get("verdict") in VERDICTS and isinstance(c.get("claim"), str)
+        for c in claims)
+
+
+def source_excerpt(p):
+    """What the verifier sees for one paper: the raw abstract plus the extraction's quotes."""
+    quotes = (p.get("extraction") or {}).get("evidence") or {}
+    lines = [f"[{p['rank']}] {p['title']} ({p.get('year')}, {p.get('venue') or 'venue unknown'})",
+             f"Abstract: {p.get('abstract') or 'not available'}"]
+    lines += [f"Evidence quote ({k}): {v}" for k, v in quotes.items() if v and v != "not found"]
+    return "\n".join(lines)
+
+
+def verify_section(section, papers_by_rank):
+    """Check one section's cited claims in a fresh context. Returns (check, stats)."""
+    text = section["summary"] + "\n" + "\n".join(f"- {k}" for k in section["key_points"])
+    cites = [n for n in cited_numbers(text) if n in papers_by_rank]
+    if not cites:
+        return {"claims": [], "note": "No citations to check."}, {"cost_usd": 0.0}
+    user = VERIFY_PROMPT.format(title=section["title"], text=text,
+                                sources="\n\n".join(source_excerpt(papers_by_rank[n]) for n in cites))
+    data, stats = llm.ask_json(VERIFY_SYSTEM, user, 2000, valid_check,
+                               model=config.VERIFY_MODEL, cache=True)
+    if not data:
+        return {"claims": [], "note": "The checker could not complete this section."}, stats
+    return {"claims": [{"claim": c["claim"], "cites": [n for n in c.get("cites") or [] if isinstance(n, int)],
+                        "verdict": c["verdict"], "reason": str(c.get("reason") or "")}
+                       for c in data["claims"]]}, stats
+
+
+def verify_review(review, papers):
+    """Fan out: the five sections are independent, so they're checked in parallel."""
+    by_rank = {p["rank"]: p for p in papers}
+    cost = 0.0
+    with ThreadPoolExecutor(max_workers=len(review["sections"])) as pool:
+        futures = [pool.submit(verify_section, sec, by_rank) for sec in review["sections"]]
+        for sec, future in zip(review["sections"], futures):
+            check, stats = future.result()
+            sec["check"] = check
+            cost += stats.get("cost_usd", 0.0)
+    claims = [c for sec in review["sections"] for c in sec["check"]["claims"]]
+    review["verification"] = {v: sum(1 for c in claims if c["verdict"] == v) for v in VERDICTS}
+    review["verification"].update(total=len(claims), model=config.VERIFY_MODEL)
+    return review, cost
 
 
 _embedder = None
@@ -228,7 +319,8 @@ def name_clusters(topic, titles_by_cluster, texts, labels):
             f'{{"names": [<{len(titles_by_cluster)} strings, in order>]}}')
     data, stats = llm.ask_json(
         "You name groups of research papers.", user, 300,
-        lambda d: isinstance(d.get("names"), list) and len(d["names"]) == len(titles_by_cluster))
+        lambda d: isinstance(d.get("names"), list) and len(d["names"]) == len(titles_by_cluster),
+        cache=True)
     if data:
         return [str(n) for n in data["names"]], stats
     return keyword_names(texts, labels, re.findall(r"[a-z]+", topic.lower())), stats
@@ -304,17 +396,53 @@ def run(query, report=lambda stage, fraction, message: None, source_names=None,
         lens_key="balanced"):
     try:
         return _run(query, report, source_names, lens_key)
-    except sqlite3.OperationalError as e:
-        if "locked" in str(e):
-            raise PipelineError(
-                f"The results database ({config.DB_PATH}) is busy. Close any program that has it "
-                "open (such as DB Browser for SQLite), wait for other searches to finish, and "
-                "try again.") from e
-        raise
     except Exception as e:
-        if type(e).__module__.startswith("anthropic") and hasattr(e, "status_code"):
-            raise PipelineError(api_error_message(e)) from e
-        raise
+        log = getattr(_current, "log", None)
+        if log:  # the step log records how far the search got and why it stopped
+            log("error", kind=type(e).__name__, message=str(e)[:500])
+        raise_explained(e)
+    finally:
+        _current.log = None
+
+
+def raise_explained(e):
+    """Re-raise an exception as something the person searching can act on."""
+    if isinstance(e, PipelineError):
+        raise e
+    if isinstance(e, sqlite3.OperationalError) and "locked" in str(e):
+        raise PipelineError(
+            f"The results database ({config.DB_PATH}) is busy. Close any program that has it "
+            "open (such as DB Browser for SQLite), wait for other searches to finish, and "
+            "try again.") from e
+    if type(e).__module__.startswith("anthropic") and hasattr(e, "status_code"):
+        raise PipelineError(api_error_message(e)) from e
+    raise e
+
+
+_current = threading.local()   # the running search's step logger, for error reporting
+
+
+def make_run_log(run_id):
+    """Append-only step log: one JSON line per step, written as it happens.
+
+    If a search crashes, the log shows exactly how far it got and why. Together with the
+    HTTP and LLM caches, re-running the search replays the finished steps for free.
+    """
+    config.RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    path = config.RUNS_DIR / f"{run_id}.log.jsonl"
+    events, start = [], time.perf_counter()
+
+    def log(step, **detail):
+        event = {"t": round(time.perf_counter() - start, 2), "step": step, **detail}
+        events.append(event)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(event) + "\n")
+    return log, events
+
+
+def run_id_for(query):
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    return f"{stamp}-{re.sub(r'[^a-z0-9]+', '-', query.lower()).strip('-')[:50] or 'search'}"
 
 
 def _run(query, report, source_names, lens_key):
@@ -327,6 +455,10 @@ def _run(query, report, source_names, lens_key):
     lens = config.LENSES.get(lens_key) or config.LENSES["balanced"]
     has_llm = llm.has_key()
     cost = 0.0
+    run_id = run_id_for(query)
+    log, events = make_run_log(run_id)
+    _current.log = log
+    log("start", query=query, lens=lens["label"], sources=source_names, llm=has_llm)
 
     # 1) Processing your query
     report(0, 0.1, "Reading your query")
@@ -335,12 +467,14 @@ def _run(query, report, source_names, lens_key):
         cost += stats["cost_usd"]
     else:
         topic, criteria = query, f"Papers whose main contribution addresses: {query}."
+    log("query", topic=topic, criteria=criteria)
     report(0, 1.0, f"Searching for: {topic}")
 
     # 2) Identifying candidate papers
     names = ", ".join(config.SOURCES[s] for s in source_names)
     report(1, 0.1, f"Searching {names}")
     raw, counts, errors = sources.search_all(query, source_names)
+    log("search", counts=counts, errors=errors, merged=len(raw))
     if errors and not counts:
         detail = "; ".join(f"{config.SOURCES[s]}: {e}" for s, e in errors.items())
         raise PipelineError(f"Could not reach any source ({detail}). Check your connection and "
@@ -370,6 +504,7 @@ def _run(query, report, source_names, lens_key):
             p.setdefault("scores", {})[scorer] = s
             db.save_score(conn, p["paper_id"], query, scorer, s, latency_ms=ms, cost_usd=0.0)
         conn.commit()  # commit before the next model runs, so the database is never held open
+        log("rank", model=scorer, papers=n)
     for p in candidates:
         p["ce_mean"] = (p["scores"]["minilm"] + p["scores"]["bge"]) / 2
         p["scores"]["llm"] = p["scores"]["lens"] = None
@@ -387,8 +522,11 @@ def _run(query, report, source_names, lens_key):
             p["scores"]["llm"], p["scores"]["lens"], p["rationale"] = s, lens_score, rationale
             p["final"] = final_llm_score(s, lens_score)
             cost += st["cost_usd"]
-            db.save_score(conn, p["paper_id"], query, "llm", s, rationale, **st)
+            db.save_score(conn, p["paper_id"], query, "llm", s, rationale,
+                          **{k: v for k, v in st.items() if k != "cached"})
         conn.commit()
+        log("judge", judged=m, failed=sum(1 for p in shortlist if p["scores"]["llm"] is None),
+            reused_from_cache=sum(1 for v in judged.values() if v[2].get("cached")))
 
     # 4) Finishing scoring
     ranked = sorted(candidates, key=rank_key, reverse=True)
@@ -410,9 +548,16 @@ def _run(query, report, source_names, lens_key):
             if data:
                 db.save_extraction(conn, p["paper_id"], query, data, kind)
         conn.commit()
+        log("extract", ok=sum(1 for p in top if p["extraction"]),
+            full_text=sum(1 for p in top if p["source_text_kind"] == "full_text"))
         report(3, 0.55, "Writing the systematic review")
         review, st = write_review(topic, top, lens)
         cost += st["cost_usd"]
+        log("review", sections=len(review["sections"]))
+        report(3, 0.72, "Independent check of every cited claim")
+        review, verify_cost = verify_review(review, top)
+        cost += verify_cost
+        log("verify", **{k: v for k, v in review["verification"].items() if k != "model"})
 
     report(3, 0.85, "Grouping papers into topics")
     clusters, cluster_of, st = topic_clusters(topic, candidates, {p["paper_id"] for p in top},
@@ -420,13 +565,16 @@ def _run(query, report, source_names, lens_key):
     cost += st["cost_usd"]
     for p in top:
         p["cluster"] = cluster_of[p["paper_id"]]
+    log("clusters", topics=len(clusters["series"]))
 
     def level_counts(key):
         vals = [p["scores"][key] for p in shortlist if p["scores"][key] is not None]
         return {lv: sum(1 for v in vals if round(v * 4) + 1 == lv) for lv in range(1, 6)}
 
     rel_counts, lens_counts = level_counts("llm"), level_counts("lens")
+    log("done", cost_usd=round(cost, 4))
     result = {
+        "run_id": run_id, "log": events,
         "query": query, "topic": topic, "criteria": criteria,
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "n_candidates": n, "n_shortlisted": m, "cost_usd": round(cost, 4),
@@ -454,8 +602,6 @@ def _run(query, report, source_names, lens_key):
 def save_run(result):
     """Keep every result as JSON so a search can be reopened without re-running it."""
     config.RUNS_DIR.mkdir(parents=True, exist_ok=True)
-    slug = re.sub(r"[^a-z0-9]+", "-", result["query"].lower()).strip("-")[:50] or "search"
-    stamp = result["created_at"].replace(":", "").replace("-", "")[:15]
-    path = config.RUNS_DIR / f"{stamp}-{slug}.json"
+    path = config.RUNS_DIR / f"{result['run_id']}.json"
     path.write_text(json.dumps(result, indent=1), encoding="utf-8")
     return path

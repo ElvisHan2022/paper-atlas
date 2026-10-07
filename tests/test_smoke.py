@@ -311,3 +311,8 @@ def test_llm_cache_reuses_valid_answers(monkeypatch, tmp_path):
     assert stats2["cached"] and stats2["cost_usd"] == 0
     llm.ask_json("sys", "different user", 50, ok, cache=True)
     assert len(calls) == 3                       # a different request is not a cache hit
+
+
+def test_cited_numbers():
+    from pipeline import cited_numbers
+    assert cited_numbers("A [1] and B [2, 7] but not 2023 or [x].") == [1, 2, 7]
