@@ -23,7 +23,20 @@ jobs = {}                 # job id -> dict the browser polls
 jobs_lock = threading.Lock()
 
 
+def running_job():
+    with jobs_lock:
+        return next((j for j in jobs.values() if j["status"] == "running"), None)
+
+
 def new_job(query, source_names=None, lens="balanced"):
+    """Start a search, or return the one already running.
+
+    One search at a time: they share the local models and the database, and parallel
+    searches mostly just slow each other down.
+    """
+    busy = running_job()
+    if busy:
+        return busy["id"], busy["query"]
     job_id = uuid.uuid4().hex[:12]
     job = {"id": job_id, "query": query, "sources": source_names, "lens": lens,
            "status": "running", "stage": 0, "percent": 0.0, "message": "Starting",
@@ -31,7 +44,7 @@ def new_job(query, source_names=None, lens="balanced"):
     with jobs_lock:
         jobs[job_id] = job
     threading.Thread(target=run_job, args=(job,), daemon=True).start()
-    return job_id
+    return job_id, None
 
 
 def run_job(job):
@@ -134,7 +147,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         chosen = [s for s in body.get("sources") or [] if s in config.SOURCES] or None
         lens = body.get("lens") if body.get("lens") in config.LENSES else "balanced"
-        self.send_json({"job_id": new_job(query[:300], chosen, lens)})
+        job_id, already = new_job(query[:300], chosen, lens)
+        self.send_json({"job_id": job_id, "already_running": already})
 
     def log_message(self, fmt, *args):
         pass  # polling would flood the terminal

@@ -602,23 +602,28 @@ async function openRun(file) {
 
 // ---------------- progress ----------------
 async function startSearch(text) {
-  const query = (text || "").trim();
+  let query = (text || "").trim();
   if (query.length < 3) { $("#form-error").textContent = "Type a topic or a few keywords."; return; }
-  state.query = query;
-  let res;
+  if (state.starting) return;          // ignore double clicks
+  state.starting = true;
+  let res, data;
   try {
     res = await fetch("/api/search", { method: "POST", headers: { "Content-Type": "application/json" },
                                        body: JSON.stringify({ query, lens: state.lens, sources: state.sources }) });
+    data = await res.json();
   } catch {
     $("#form-error").textContent = "Can't reach the paper-atlas server. Is app.py running?";
     return;
+  } finally {
+    state.starting = false;
   }
-  const data = await res.json();
   if (!res.ok) { $("#form-error").textContent = data.error || "Search failed."; return; }
+  if (data.already_running) query = data.already_running;   // show the search that's in progress
+  state.query = query;
   state.jobId = data.job_id;
   state.shown = 0; state.target = 0;
   $("#run-query").textContent = query;
-  $("#run-sub").textContent = "Starting…";
+  $("#run-sub").textContent = data.already_running ? "Another search is already running; showing it here." : "Starting…";
   const o = state.options;
   $("#run-context").textContent = o ? `${(o.lenses[state.lens] || {}).label || "Balanced"} lens · ${state.sources.map(x => o.sources[x] || x).join(", ")}` : "";
   $("#run-error").hidden = true;
