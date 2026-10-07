@@ -77,8 +77,31 @@
     font-size: 18px; line-height: 1.5; min-height: 54px; max-height: 200px; padding: 4px 0;
   }
   .search textarea::placeholder { color: var(--faint); }
-  .search-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .search-hint { color: var(--faint); font-size: 13px; }
+  .search-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+  .ctl { border: 1px solid var(--border); background: var(--surface); border-radius: 999px;
+         min-height: 36px; padding: 6px 12px; font-size: 13.5px; color: var(--muted); cursor: pointer;
+         display: inline-flex; align-items: center; gap: 6px; transition: border-color .2s, color .2s, background .2s; }
+  .ctl:hover { border-color: var(--accent); color: var(--text); }
+  .ctl svg { flex: none; }
+  .toggle[aria-pressed="true"] { background: var(--accent-soft); border-color: transparent; color: var(--accent-strong); }
+  .toggle[aria-pressed="true"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .lens-wrap { position: relative; }
+  .menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 10; width: min(320px, 80vw);
+          background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+          box-shadow: var(--shadow); padding: 6px; margin: 0; list-style: none; animation: fade-in .18s var(--ease); }
+  .menu button { width: 100%; text-align: left; border: 0; background: none; cursor: pointer; border-radius: 8px;
+                 padding: 9px 10px; display: grid; grid-template-columns: 18px 1fr; gap: 2px 10px; min-height: 44px; }
+  .menu button:hover, .menu button:focus-visible { background: var(--surface-2); outline: none; }
+  .menu b { font-weight: 600; font-size: 14px; }
+  .menu small { grid-column: 2; color: var(--muted); font-size: 12.5px; }
+  .menu .tick { color: var(--accent); visibility: hidden; }
+  .menu [aria-checked="true"] .tick { visibility: visible; }
+  .notice { width: min(720px, 100%); margin: 12px 0 0; padding: 10px 14px; border-radius: 10px; font-size: 14px;
+            background: var(--surface-2); color: var(--muted); }
+  .notice b { color: var(--text); }
+  .eyebrow { color: var(--accent-strong); background: var(--accent-soft); border-radius: 999px; font-size: 13px;
+             font-weight: 500; padding: 4px 12px; margin: 0 0 14px; }
   .go {
     width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; flex: none;
     background: var(--accent); color: var(--on-accent); display: grid; place-items: center;
@@ -116,6 +139,7 @@
   .run-card { width: min(560px, 100%); }
   .run-query { font-size: clamp(22px, 3.4vw, 30px); font-weight: 500; letter-spacing: -.02em;
                margin: 0 0 6px; overflow-wrap: anywhere; }
+  .run-context { color: var(--accent-strong); font-size: 14px; font-weight: 500; margin: 0 0 4px; }
   .run-sub { color: var(--muted); margin: 0 0 28px; min-height: 1.5em; }
   .loader { display: grid; place-items: center; margin: 0 auto 30px; width: 132px; height: 132px;
             position: relative; }
@@ -212,6 +236,14 @@
          color: var(--muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
   .tag b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   .tag.level { background: var(--accent-soft); border-color: transparent; color: var(--accent-strong); }
+  .tag.evidence { border-color: var(--text); color: var(--text); font-weight: 500; }
+  .warn { margin: 14px 0 0; padding: 10px 14px; border-radius: 10px; font-size: 14px;
+          border: 1px solid var(--border); background: var(--surface); color: var(--muted); }
+  .warn b { color: var(--text); }
+  .empty-state { border: 1px dashed var(--border); border-radius: var(--radius); padding: 28px 24px; text-align: center;
+                 color: var(--muted); }
+  .empty-state h2 { color: var(--text); font-size: 18px; margin: 0 0 8px; }
+  .empty-state code { background: var(--surface-2); padding: 2px 6px; border-radius: 6px; }
   .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
   .rationale { margin: 10px 0 0; color: var(--muted); font-size: 14.5px; }
   details.abstract { margin-top: 8px; font-size: 14.5px; }
@@ -308,18 +340,32 @@
       <svg width="44" height="44" aria-hidden="true"><use href="#logo"/></svg>
       <b>paper atlas</b>
     </div>
+    <p class="eyebrow">Healthcare research, found, ranked and reviewed</p>
     <h1>What do you want to search for today?</h1>
     <form class="search" id="search-form" autocomplete="off">
       <label for="q" class="sr-only">Research topic or keywords</label>
       <textarea id="q" rows="1" maxlength="300"
                 placeholder="A topic or a few keywords, e.g. LLM evaluation for clinical text"></textarea>
       <div class="search-row">
-        <span class="search-hint">Finds, scores, and reviews the 10 best papers</span>
+        <div class="controls">
+          <div class="lens-wrap">
+            <button type="button" class="ctl" id="lens-btn" aria-haspopup="menu" aria-expanded="false"
+                    aria-controls="lens-menu" title="What kind of evidence matters most to you">
+              <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+              <span>Lens: <span id="lens-label">Balanced</span></span>
+              <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <ul class="menu" id="lens-menu" role="menu" aria-label="Evidence lens" hidden></ul>
+          </div>
+          <div class="controls" role="group" aria-label="Sources to search" id="source-toggles"></div>
+        </div>
         <button class="go" type="submit" id="go" aria-label="Search" disabled>
           <svg width="20" height="20" aria-hidden="true"><use href="#arrow"/></svg>
         </button>
       </div>
     </form>
+    <p class="notice" id="key-notice" hidden><b>No API key found.</b> Searches will rank papers with the
+      local models only, with no LLM judge and no review. Add <code>ANTHROPIC_API_KEY</code> to <code>.env</code> and restart.</p>
     <p class="form-error" id="form-error" role="alert"></p>
     <div class="chips" id="suggestions"></div>
     <div class="recent" id="recent" hidden>
@@ -327,7 +373,7 @@
       <ul id="recent-list"></ul>
     </div>
   </main>
-  <footer class="home-foot">Sources: Semantic Scholar · Scored by MiniLM, BGE and Claude</footer>
+  <footer class="home-foot">Searches PubMed, Semantic Scholar and arXiv · Ranked by MiniLM, BGE and Claude</footer>
 </section>
 
 <!-- ================= PROGRESS ================= -->
@@ -338,6 +384,7 @@
   <main>
     <div class="run-card">
       <h1 class="run-query" id="run-query"></h1>
+      <p class="run-context" id="run-context"></p>
       <p class="run-sub" id="run-sub" aria-live="polite"></p>
       <div class="loader" role="progressbar" aria-label="Search progress" aria-valuemin="0"
            aria-valuemax="100" aria-valuenow="0" id="loader">
@@ -398,12 +445,18 @@
 <script>
 const SUGGESTIONS = [
   "LLM evaluation and reliability for clinical and health text",
+  "sepsis prediction models deployed in hospitals",
   "self-supervised learning on wearable sensor data for health",
-  "retrieval-augmented generation for medical question answering",
+  "AI-generated clinical documentation and ambient scribes",
 ];
 const COLORS = ["--s1", "--s2", "--s3", "--s4", "--s5"];
 const $ = sel => document.querySelector(sel);
-const state = { jobId: null, query: "", shown: 0, target: 0, result: null, timer: null };
+const state = { jobId: null, query: "", shown: 0, target: 0, result: null, timer: null,
+                lens: "balanced", sources: ["pubmed", "semantic_scholar", "arxiv"], options: null };
+const store = {  // remembered per browser; the page works fine if storage is blocked
+  get(k, d) { try { return JSON.parse(localStorage.getItem("atlas:" + k)) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("atlas:" + k, JSON.stringify(v)); } catch {} },
+};
 
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, c =>
@@ -452,6 +505,56 @@ $("#suggestions").addEventListener("click", e => {
   if (b) { q.value = b.dataset.s; autosize(); $("#go").disabled = false; startSearch(b.dataset.s); }
 });
 
+// ---- lens + sources ----
+async function loadOptions() {
+  try { state.options = await (await fetch("/api/options")).json(); }
+  catch { return; }
+  const o = state.options;
+  state.lens = o.lenses[store.get("lens", "balanced")] ? store.get("lens", "balanced") : "balanced";
+  const saved = store.get("sources", Object.keys(o.sources)).filter(s => o.sources[s]);
+  state.sources = saved.length ? saved : Object.keys(o.sources);
+  $("#key-notice").hidden = o.has_llm;
+  $("#lens-menu").innerHTML = Object.entries(o.lenses).map(([k, v]) =>
+    `<li role="none"><button type="button" role="menuitemradio" data-lens="${esc(k)}" aria-checked="${k === state.lens}">
+       <svg class="tick" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+       <b>${esc(v.label)}</b><small>${esc(v.summary)}</small></button></li>`).join("");
+  $("#lens-label").textContent = o.lenses[state.lens].label;
+  $("#source-toggles").innerHTML = Object.entries(o.sources).map(([k, label]) =>
+    `<button type="button" class="ctl toggle" data-source="${esc(k)}" aria-pressed="${state.sources.includes(k)}">${esc(label)}</button>`).join("");
+}
+function setLensMenu(open) {
+  $("#lens-menu").hidden = !open;
+  $("#lens-btn").setAttribute("aria-expanded", open);
+  if (open) ($("#lens-menu [aria-checked=true]") || $("#lens-menu button")).focus();
+}
+$("#lens-btn").addEventListener("click", () => setLensMenu($("#lens-menu").hidden));
+$("#lens-menu").addEventListener("click", e => {
+  const b = e.target.closest("[data-lens]");
+  if (!b) return;
+  state.lens = b.dataset.lens; store.set("lens", state.lens);
+  document.querySelectorAll("#lens-menu [data-lens]").forEach(x => x.setAttribute("aria-checked", x === b));
+  $("#lens-label").textContent = state.options.lenses[state.lens].label;
+  setLensMenu(false); $("#lens-btn").focus();
+});
+$("#lens-menu").addEventListener("keydown", e => {
+  const items = [...document.querySelectorAll("#lens-menu button")];
+  const i = items.indexOf(document.activeElement);
+  if (e.key === "ArrowDown") { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+  if (e.key === "ArrowUp") { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+  if (e.key === "Escape") { setLensMenu(false); $("#lens-btn").focus(); }
+});
+document.addEventListener("click", e => { if (!e.target.closest(".lens-wrap")) setLensMenu(false); });
+$("#source-toggles").addEventListener("click", e => {
+  const b = e.target.closest("[data-source]");
+  if (!b) return;
+  const on = b.getAttribute("aria-pressed") !== "true";
+  if (!on && state.sources.length === 1) { $("#form-error").textContent = "Keep at least one source."; return; }
+  b.setAttribute("aria-pressed", on);
+  state.sources = [...document.querySelectorAll("#source-toggles [aria-pressed=true]")].map(x => x.dataset.source);
+  store.set("sources", state.sources);
+  $("#form-error").textContent = "";
+});
+
 async function loadRecent() {
   try {
     const runs = await (await fetch("/api/runs")).json();
@@ -480,7 +583,7 @@ async function startSearch(text) {
   let res;
   try {
     res = await fetch("/api/search", { method: "POST", headers: { "Content-Type": "application/json" },
-                                       body: JSON.stringify({ query }) });
+                                       body: JSON.stringify({ query, lens: state.lens, sources: state.sources }) });
   } catch {
     $("#form-error").textContent = "Can't reach the paper-atlas server. Is app.py running?";
     return;
@@ -491,6 +594,8 @@ async function startSearch(text) {
   state.shown = 0; state.target = 0;
   $("#run-query").textContent = query;
   $("#run-sub").textContent = "Starting…";
+  const o = state.options;
+  $("#run-context").textContent = o ? `${o.lenses[state.lens].label} lens · ${state.sources.map(x => o.sources[x]).join(", ")}` : "";
   $("#run-error").hidden = true;
   $("#loader").classList.remove("stopped", "finished");
   renderStages(["Processing your query", "Identifying candidate papers", "Scoring the papers", "Finishing scoring"], 0, "running", "");
@@ -570,13 +675,20 @@ function setPercent(p, instant) {
 function renderResults(r) {
   state.result = r;
   $("#res-title").textContent = r.topic || r.query;
+  const src = r.sources || { counts: {}, errors: {}, labels: {} };
+  const found = Object.entries(src.counts).map(([k, n]) => `${esc(src.labels[k] || k)} ${n}`).join(" · ");
   $("#res-meta").innerHTML = [
     `Search: “${esc(r.query)}”`,
-    `${r.n_candidates} candidates · ${r.n_shortlisted} judged by the LLM`,
-    `$${Number(r.cost_usd).toFixed(3)} in API calls`,
+    r.lens ? `<b style="color:var(--text)">${esc(r.lens.label)} lens</b>` : "",
+    found ? `Found: ${found}` : "",
+    `${r.n_candidates} candidates` + (r.n_shortlisted ? ` · ${r.n_shortlisted} judged by the LLM` : ""),
+    r.has_llm === false ? "Local models only" : `$${Number(r.cost_usd).toFixed(3)} in API calls`,
     esc(ago(r.created_at)),
-  ].map(x => `<span>${x}</span>`).join("");
-  $("#res-criteria").innerHTML = `<b>Relevance criteria:</b> ${esc(r.criteria)}`;
+  ].filter(Boolean).map(x => `<span>${x}</span>`).join("");
+  const failed = Object.entries(src.errors || {});
+  $("#res-criteria").innerHTML = `<b>Relevance criteria:</b> ${esc(r.criteria)}` +
+    (r.lens && r.lens.criteria ? `<br><b>${esc(r.lens.label)} lens:</b> ${esc(r.lens.criteria)}` : "") +
+    (failed.length ? `</p><p class="warn"><b>Couldn't reach ${failed.map(([k]) => esc(src.labels[k] || k)).join(", ")}</b>; results come from the other sources.` : "");
   $("#mini-q").value = "";
   renderPapers(r); renderReview(r); renderTopics(r); renderRubric(r);
   show("results");
@@ -615,13 +727,17 @@ function renderPapers(r) {
       <div class="rank">${p.rank}</div>
       <div>
         <h3><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a></h3>
-        <div class="byline">${esc(authors)}${authors ? " · " : ""}${esc(p.venue || "Venue unknown")} · ${esc(p.year ?? "n.d.")} · ${Number(p.citations || 0).toLocaleString()} citations</div>
+        <div class="byline">${esc(authors)}${authors ? " · " : ""}${esc(p.venue || "Venue unknown")} · ${esc(p.year ?? "n.d.")}${p.citations != null ? ` · ${Number(p.citations).toLocaleString()} citations` : ""}</div>
         <div class="tags">
-          ${level ? `<span class="tag level">LLM <b>${p.level}/5</b> ${esc(level.label)}</span>` : `<span class="tag">LLM <b>–</b></span>`}
+          ${(p.evidence || []).map(t => `<span class="tag evidence">${esc(t)}</span>`).join("")}
+          ${p.venue_type ? `<span class="tag">${esc(p.venue_type)}</span>` : ""}
+          ${level ? `<span class="tag level">Relevance <b>${p.level}/5</b> ${esc(level.label)}</span>` : (r.has_llm === false ? "" : `<span class="tag">Relevance <b>–</b></span>`)}
+          ${p.lens_level && r.lens ? `<span class="tag level">${esc(r.lens.label)} <b>${p.lens_level}/5</b></span>` : ""}
           <span class="tag">BGE <b>${fmt(p.scores.bge)}</b></span>
           <span class="tag">MiniLM <b>${fmt(p.scores.minilm)}</b></span>
           <span class="tag"><span class="dot" style="background:${color(p.cluster)}"></span>${esc(clusterName(r, p.cluster))}</span>
-          <span class="tag">${p.source_text_kind === "full_text" ? "Full text read" : "Abstract only"}</span>
+          ${r.has_llm === false ? "" : `<span class="tag">${p.source_text_kind === "full_text" ? "Full text read" : "Abstract only"}</span>`}
+          <span class="tag">${esc((p.sources || []).map(x => (r.sources && r.sources.labels[x]) || x).join(" + ") || "Semantic Scholar")}</span>
         </div>
         ${p.rationale ? `<p class="rationale">${esc(p.rationale)}</p>` : ""}
         <details class="abstract"><summary>Abstract</summary><p>${esc(p.abstract)}</p></details>
@@ -641,6 +757,13 @@ function citeLinks(text, r) {
 }
 
 function renderReview(r) {
+  if (!r.review) {
+    $("#panel-review").innerHTML = `<div class="empty-state"><h2>The review needs an API key</h2>
+      <p>This search ran without <code>ANTHROPIC_API_KEY</code>, so papers were ranked by the local models only.
+      Add your key to the <code>.env</code> file, restart <code>python app.py</code>, and search again to get the
+      five-section systematic review (a few cents per search).</p></div>`;
+    return;
+  }
   const full = r.papers.filter(p => p.source_text_kind === "full_text").length;
   $("#panel-review").innerHTML = `
     <p class="overview">${citeLinks(r.review.overview, r)}</p>
@@ -778,30 +901,52 @@ window.addEventListener("resize", () => {
 });
 
 function renderRubric(r) {
-  const maxCount = Math.max(1, ...r.rubric.map(x => x.count));
+  const bar = (count, max) => `<div style="display:flex;align-items:center;gap:8px"><div class="level-bar" style="width:${Math.round(count / Math.max(1, max) * 90)}px"></div>${count}</div>`;
+  const lens = r.lens && r.lens.criteria ? r.lens : null;
+  const w = r.lens_weight ?? 0.4;
+  if (r.has_llm === false) {
+    $("#panel-rubric").innerHTML = `
+      <div class="method"><p style="margin-top:0">This search ran <b>without an API key</b>, so the 10 papers are the
+        ones that two local cross-encoders (MiniLM and BGE) rated most relevant, by the average of their 0-1 scores.
+        There's no LLM rubric or evidence lens. Add <code>ANTHROPIC_API_KEY</code> to <code>.env</code> to turn them on.</p></div>
+      <div class="table-scroll"><table><thead><tr><th>#</th><th>Paper</th><th>BGE</th><th>MiniLM</th><th class="hide-sm">Evidence</th></tr></thead>
+      <tbody>${r.papers.map(p => `<tr><td class="num">${p.rank}</td><td>${esc(p.title)}</td>
+        <td class="num">${fmt(p.scores.bge)}</td><td class="num">${fmt(p.scores.minilm)}</td>
+        <td class="hide-sm">${esc([p.venue_type, ...(p.evidence || [])].filter(Boolean).join(", "))}</td></tr>`).join("")}</tbody></table></div>`;
+    return;
+  }
+  const maxRel = Math.max(...r.rubric.map(x => x.count));
   $("#panel-rubric").innerHTML = `
     <div class="method">
       <p style="margin-top:0">How the 10 papers were chosen:</p>
       <ol>
         <li><b>Two local cross-encoders</b> (MiniLM and BGE) read the criteria and each of the ${r.n_candidates} candidates together and output a relevance score from 0 to 1.</li>
-        <li>The <b>top ${r.n_shortlisted}</b> by their average go to an <b>LLM judge</b> (${esc(r.models.llm)}), which scores each against the rubric below and writes one sentence on why.</li>
-        <li>Papers are <b>ranked by the LLM score</b>; the cross-encoder average breaks ties.</li>
+        <li>The <b>top ${r.n_shortlisted}</b> by their average go to an <b>LLM judge</b> (${esc(r.models.llm)}), which scores relevance against the rubric below${lens ? `, scores fit with the <b>${esc(lens.label)}</b> lens (using the title, abstract, venue and publication types)` : ""}, and writes one sentence on why.</li>
+        <li>${lens ? `Papers are ranked by <b>${Math.round((1 - w) * 100)}% relevance + ${Math.round(w * 100)}% lens fit</b>` : "Papers are <b>ranked by the LLM relevance score</b>"}; the cross-encoder average breaks ties.</li>
       </ol>
     </div>
-    <h2 class="sub">Rubric (LLM judge)</h2>
+    <h2 class="sub">Relevance rubric</h2>
     <div class="table-scroll"><table>
       <thead><tr><th>Level</th><th>Label</th><th>Meaning</th><th>Shortlisted papers</th></tr></thead>
       <tbody>${r.rubric.map(x => `<tr>
         <td><span class="level-pill">${x.level}</span></td><td><b>${esc(x.label)}</b></td><td>${esc(x.description)}</td>
-        <td class="num"><div style="display:flex;align-items:center;gap:8px"><div class="level-bar" style="width:${Math.round(x.count / maxCount * 90)}px"></div>${x.count}</div></td>
-      </tr>`).join("")}</tbody>
+        <td class="num">${bar(x.count, maxRel)}</td></tr>`).join("")}</tbody>
     </table></div>
+    ${lens && r.lens_rubric ? `
+    <h2 class="sub">${esc(lens.label)} lens</h2>
+    <p class="method" style="margin-top:0">${esc(lens.criteria)}</p>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Level</th><th>Fit</th><th>Shortlisted papers</th></tr></thead>
+      <tbody>${r.lens_rubric.map(x => `<tr><td><span class="level-pill">${x.level}</span></td><td><b>${esc(x.label)}</b></td>
+        <td class="num">${bar(x.count, Math.max(...r.lens_rubric.map(y => y.count)))}</td></tr>`).join("")}</tbody>
+    </table></div>` : ""}
     <h2 class="sub">Scores for the top 10</h2>
     <div class="table-scroll"><table>
-      <thead><tr><th>#</th><th>Paper</th><th>LLM (1-5)</th><th class="hide-sm">BGE</th><th class="hide-sm">MiniLM</th><th>Why</th></tr></thead>
+      <thead><tr><th>#</th><th>Paper</th><th>Relevance</th>${lens ? `<th>Lens</th>` : ""}<th class="hide-sm">BGE</th><th class="hide-sm">MiniLM</th><th>Why</th></tr></thead>
       <tbody>${r.papers.map(p => `<tr>
-        <td class="num">${p.rank}</td><td>${esc(p.title)}</td>
+        <td class="num">${p.rank}</td><td>${esc(p.title)}<div style="color:var(--faint);font-size:12.5px">${esc([p.venue_type, ...(p.evidence || [])].filter(Boolean).join(" · "))}</div></td>
         <td class="num">${p.level ? `<span class="level-pill">${p.level}</span>` : "–"}</td>
+        ${lens ? `<td class="num">${p.lens_level ? `<span class="level-pill">${p.lens_level}</span>` : "–"}</td>` : ""}
         <td class="num hide-sm">${fmt(p.scores.bge)}</td><td class="num hide-sm">${fmt(p.scores.minilm)}</td>
         <td style="color:var(--muted)">${esc(p.rationale || "")}</td>
       </tr>`).join("")}</tbody>
@@ -810,6 +955,7 @@ function renderRubric(r) {
 
 // ---------------- start ----------------
 const m = location.hash.match(/^#run=(.+)$/);
+loadOptions();
 if (m) openRun(decodeURIComponent(m[1])); else { loadRecent(); q.focus(); }
 </script>
 </body>
