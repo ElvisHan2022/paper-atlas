@@ -266,6 +266,31 @@
           vertical-align: 1px; font-variant-numeric: tabular-nums; }
   .cite:hover { background: var(--accent-soft); }
   .note { color: var(--faint); font-size: 13px; margin-top: 18px; }
+  .verify-banner { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; border: 1px solid var(--border);
+                   background: var(--surface); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 18px;
+                   font-size: 14.5px; }
+  .verify-banner b { font-weight: 600; }
+  .vbar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; flex: 1 1 160px; min-width: 120px;
+          background: var(--surface-2); gap: 2px; }
+  .vbar span { display: block; height: 100%; }
+  .v-supported { background: var(--good); }
+  .v-partial { background: var(--s4); }
+  .v-unsupported { background: var(--error); }
+  .vkey { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .vkey i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .check-chip { margin-left: auto; font-size: 12.5px; font-weight: 500; border-radius: 999px; padding: 3px 10px;
+                border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+  .check-chip.ok { color: var(--good); border-color: var(--good); }
+  .check-chip.warn { color: var(--text); border-color: var(--s4); }
+  details.checks { margin-top: 12px; font-size: 14px; }
+  details.checks summary { cursor: pointer; color: var(--accent); min-height: 32px; display: inline-flex; align-items: center; }
+  .claim { display: grid; grid-template-columns: 96px 1fr; gap: 4px 12px; padding: 8px 0;
+           border-top: 1px solid var(--border); }
+  .claim .verdict { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+  .claim .verdict.supported { color: var(--good); } .claim .verdict.partial { color: var(--text); }
+  .claim .verdict.unsupported { color: var(--error); }
+  .claim .why { grid-column: 2; color: var(--muted); font-size: 13px; }
+  .runlog td:first-child { color: var(--faint); }
 
   /* chart */
   .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 12px; font-size: 14px; }
@@ -786,6 +811,38 @@ function citeLinks(text, r) {
     }).join(""));
 }
 
+function verifyBanner(v) {
+  if (!v || !v.total) return "";
+  const pct = n => (n / v.total * 100).toFixed(1);
+  return `<div class="verify-banner" role="note">
+    <span><b>Independent check:</b> ${v.supported} of ${v.total} cited claims supported by the sources</span>
+    <div class="vbar" aria-hidden="true">
+      <span class="v-supported" style="width:${pct(v.supported)}%"></span>
+      <span class="v-partial" style="width:${pct(v.partial)}%"></span>
+      <span class="v-unsupported" style="width:${pct(v.unsupported)}%"></span></div>
+    <span class="vkey"><i class="v-supported"></i>${v.supported} supported</span>
+    <span class="vkey"><i class="v-partial"></i>${v.partial} partly</span>
+    <span class="vkey"><i class="v-unsupported"></i>${v.unsupported} not supported</span>
+  </div>`;
+}
+function checkChip(c) {
+  if (!c || !c.claims || !c.claims.length) return "";
+  const ok = c.claims.filter(x => x.verdict === "supported").length;
+  const flagged = c.claims.length - ok;
+  return flagged ? `<span class="check-chip warn">${flagged} to double-check</span>`
+                 : `<span class="check-chip ok">All ${ok} claims supported</span>`;
+}
+function checkDetails(c, r) {
+  if (!c) return "";
+  if (!c.claims.length) return c.note ? `<p class="note">${esc(c.note)}</p>` : "";
+  const order = { unsupported: 0, partial: 1, supported: 2 };
+  const rows = [...c.claims].sort((a, b) => order[a.verdict] - order[b.verdict]).map(x => `
+    <div class="claim"><span class="verdict ${esc(x.verdict)}">${x.verdict === "partial" ? "Partly" : esc(x.verdict)}</span>
+      <span>${esc(x.claim)} ${x.cites.map(n => `<button class="cite" type="button" data-rank="${n}">${n}</button>`).join("")}</span>
+      <span class="why">${esc(x.reason)}</span></div>`).join("");
+  return `<details class="checks"><summary>How each claim checked out (${c.claims.length})</summary>${rows}</details>`;
+}
+
 function renderReview(r) {
   if (!r.review) {
     $("#panel-review").innerHTML = `<div class="empty-state"><h2>The review needs an API key</h2>
@@ -796,14 +853,16 @@ function renderReview(r) {
   }
   const full = r.papers.filter(p => p.source_text_kind === "full_text").length;
   $("#panel-review").innerHTML = `
+    ${verifyBanner(r.review.verification)}
     <p class="overview">${citeLinks(r.review.overview, r)}</p>
     ${r.review.sections.map((s, i) => `
       <section class="section-card" aria-labelledby="sec-${s.key}">
-        <h2 id="sec-${s.key}"><span class="num">${i + 1}</span>${esc(s.title)}</h2>
+        <h2 id="sec-${s.key}"><span class="num">${i + 1}</span>${esc(s.title)}${checkChip(s.check)}</h2>
         <p>${citeLinks(s.summary, r)}</p>
         ${s.key_points.length ? `<ul>${s.key_points.map(k => `<li>${citeLinks(k, r)}</li>`).join("")}</ul>` : ""}
+        ${checkDetails(s.check, r)}
       </section>`).join("")}
-    <p class="note">Synthesized by ${esc(r.models.llm)} from structured extractions of ${r.papers.length} papers
+    <p class="note">${r.review.verification ? `Each section was audited by a separate checker (${esc(r.review.verification.model)}) that did not write the review and only sees the papers' abstracts and evidence quotes. ` : ""}Synthesized by ${esc(r.models.llm)} from structured extractions of ${r.papers.length} papers
       (${full} full text, ${r.papers.length - full} abstract only). Numbers in brackets link to the paper list.
       Check claims against the papers before citing them.</p>`;
 }
@@ -942,7 +1001,8 @@ function renderRubric(r) {
       <div class="table-scroll"><table><thead><tr><th>#</th><th>Paper</th><th>BGE</th><th>MiniLM</th><th class="hide-sm">Evidence</th></tr></thead>
       <tbody>${r.papers.map(p => `<tr><td class="num">${p.rank}</td><td>${esc(p.title)}</td>
         <td class="num">${fmt(p.scores.bge)}</td><td class="num">${fmt(p.scores.minilm)}</td>
-        <td class="hide-sm">${esc([p.venue_type, ...(p.evidence || [])].filter(Boolean).join(", "))}</td></tr>`).join("")}</tbody></table></div>`;
+        <td class="hide-sm">${esc([p.venue_type, ...(p.evidence || [])].filter(Boolean).join(", "))}</td></tr>`).join("")}</tbody></table></div>
+      ${runLog(r)}`;
     return;
   }
   const maxRel = Math.max(...r.rubric.map(x => x.count));
@@ -980,7 +1040,23 @@ function renderRubric(r) {
         <td class="num hide-sm">${fmt(p.scores.bge)}</td><td class="num hide-sm">${fmt(p.scores.minilm)}</td>
         <td style="color:var(--muted)">${esc(p.rationale || "")}</td>
       </tr>`).join("")}</tbody>
-    </table></div>`;
+    </table></div>
+    ${runLog(r)}`;
+}
+
+const STEP_NAMES = { start: "Started", query: "Understood the query", search: "Searched sources", rank: "Ranked with a local model",
+  judge: "LLM judge", extract: "Extracted study details", review: "Wrote the review", verify: "Independent check",
+  clusters: "Grouped into topics", done: "Finished", error: "Stopped with an error" };
+function runLog(r) {
+  if (!r.log || !r.log.length) return "";
+  const detail = e => Object.entries(e).filter(([k]) => !["t", "step"].includes(k))
+    .map(([k, v]) => `${k.replace(/_/g, " ")}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(" · ");
+  return `<h2 class="sub">How this search ran</h2>
+    <p class="method" style="margin-top:0">Every step is logged as it happens (saved next to the results in
+      <code>outputs/runs/</code>). Answers are cached, so re-running a search reuses every finished step for free.</p>
+    <div class="table-scroll"><table class="runlog"><thead><tr><th>Time</th><th>Step</th><th>Detail</th></tr></thead>
+    <tbody>${r.log.map(e => `<tr><td class="num">${Number(e.t).toFixed(1)} s</td><td>${esc(STEP_NAMES[e.step] || e.step)}</td>
+      <td style="color:var(--muted)">${esc(detail(e))}</td></tr>`).join("")}</tbody></table></div>`;
 }
 
 // ---------------- start ----------------
