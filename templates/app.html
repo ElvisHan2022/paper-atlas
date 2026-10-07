@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paper Atlas</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --surface: #ffffff; --surface-2: #f3f1ec; --border: #e5e2db;
+    --text: #13343b; --muted: #5e6466; --faint: #8b9092;
+    --accent: #1d7d89; --accent-strong: #155f69; --accent-soft: #e3f1f2; --on-accent: #ffffff;
+    --good: #0c8a4f; --error: #b3261e; --error-soft: #fbeaea;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
+    --grid: #ebe8e2; --shadow: 0 1px 2px rgba(19, 52, 59, .06), 0 8px 24px rgba(19, 52, 59, .06);
+    --radius: 14px; --ease: cubic-bezier(.2, .8, .2, 1);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171818; --surface: #1f2121; --surface-2: #272a2a; --border: #323535;
+      --text: #ecebe7; --muted: #a9adab; --faint: #7d8280;
+      --accent: #3fb8c5; --accent-strong: #6fcbd5; --accent-soft: #1d3436; --on-accent: #0d1f22;
+      --good: #3fcf8e; --error: #f2817a; --error-soft: #3a2220;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
+      --grid: #2b2e2e; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171818; --surface: #1f2121; --surface-2: #272a2a; --border: #323535;
+    --text: #ecebe7; --muted: #a9adab; --faint: #7d8280;
+    --accent: #3fb8c5; --accent-strong: #6fcbd5; --accent-soft: #1d3436; --on-accent: #0d1f22;
+    --good: #3fcf8e; --error: #f2817a; --error-soft: #3a2220;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
+    --grid: #2b2e2e; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--text); min-height: 100vh;
+    font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, textarea { font: inherit; color: inherit; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  [hidden] { display: none !important; }
+  .view { animation: fade-in .35s var(--ease); }
+  @keyframes fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- brand ---------- */
+  .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text);
+           text-decoration: none; font-weight: 600; letter-spacing: -.01em; }
+  .brand svg { color: var(--accent); }
+  .brand span { font-size: 18px; }
+
+  /* ---------- home ---------- */
+  #home { min-height: 100vh; display: flex; flex-direction: column; }
+  #home main { flex: 1; display: flex; flex-direction: column; align-items: center;
+               justify-content: center; padding: 48px 16px 96px; }
+  .wordmark { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .wordmark svg { color: var(--accent); }
+  .wordmark b { font-size: clamp(34px, 6vw, 46px); font-weight: 500; letter-spacing: -.03em; }
+  #home h1 { font-size: clamp(20px, 3vw, 26px); font-weight: 400; color: var(--muted);
+             margin: 0 0 28px; text-align: center; letter-spacing: -.01em; }
+  .search {
+    width: min(720px, 100%); background: var(--surface); border: 1px solid var(--border);
+    border-radius: 18px; box-shadow: var(--shadow); padding: 14px 14px 12px 20px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .search:focus-within { border-color: var(--accent); }
+  .search textarea {
+    width: 100%; border: 0; outline: 0; resize: none; background: transparent;
+    font-size: 18px; line-height: 1.5; min-height: 54px; max-height: 200px; padding: 4px 0;
+  }
+  .search textarea::placeholder { color: var(--faint); }
+  .search-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .search-hint { color: var(--faint); font-size: 13px; }
+  .go {
+    width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer; flex: none;
+    background: var(--accent); color: var(--on-accent); display: grid; place-items: center;
+    transition: background .2s, transform .15s, opacity .2s;
+  }
+  .go:hover { background: var(--accent-strong); }
+  .go:active { transform: scale(.94); }
+  .go:disabled { opacity: .35; cursor: not-allowed; }
+  .form-error { color: var(--error); font-size: 14px; margin: 10px 0 0; min-height: 1.2em; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+           width: min(720px, 100%); margin-top: 22px; }
+  .chip {
+    border: 1px solid var(--border); background: var(--surface); border-radius: 999px;
+    padding: 9px 14px; min-height: 40px; font-size: 14px; color: var(--muted); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px; transition: border-color .2s, color .2s;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--text); }
+  .chip svg { color: var(--faint); flex: none; }
+  .recent { width: min(720px, 100%); margin-top: 34px; }
+  .recent h2 { font-size: 13px; font-weight: 600; color: var(--faint); text-transform: uppercase;
+               letter-spacing: .06em; margin: 0 0 8px; }
+  .recent ul { list-style: none; padding: 0; margin: 0; }
+  .recent button { width: 100%; text-align: left; border: 0; background: none; cursor: pointer;
+                   padding: 10px 8px; border-radius: 10px; display: flex; justify-content: space-between;
+                   gap: 12px; color: var(--text); min-height: 44px; align-items: center; }
+  .recent button:hover { background: var(--surface-2); }
+  .recent time { color: var(--faint); font-size: 13px; flex: none; }
+  footer.home-foot { text-align: center; color: var(--faint); font-size: 13px; padding: 16px; }
+
+  /* ---------- progress ---------- */
+  #progress { min-height: 100vh; display: flex; flex-direction: column; }
+  .topbar { display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+            border-bottom: 1px solid var(--border); background: var(--bg); }
+  #progress main { flex: 1; display: grid; place-items: center; padding: 32px 16px 120px; }
+  .run-card { width: min(560px, 100%); }
+  .run-query { font-size: clamp(22px, 3.4vw, 30px); font-weight: 500; letter-spacing: -.02em;
+               margin: 0 0 6px; overflow-wrap: anywhere; }
+  .run-sub { color: var(--muted); margin: 0 0 28px; min-height: 1.5em; }
+  .loader { display: grid; place-items: center; margin: 0 auto 30px; width: 132px; height: 132px;
+            position: relative; }
+  .loader svg { position: absolute; inset: 0; }
+  .loader .track { stroke: var(--surface-2); }
+  .loader .fill { stroke: var(--accent); transition: stroke-dashoffset .4s var(--ease); }
+  .loader .spin { stroke: var(--accent); opacity: .35; transform-origin: 66px 66px;
+                  animation: spin 1.1s linear infinite; }
+  .loader .pct { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums;
+                 letter-spacing: -.02em; }
+  .loader .pct small { font-size: 15px; color: var(--muted); font-weight: 500; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .stages { list-style: none; padding: 0; margin: 0; border: 1px solid var(--border);
+            border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+  .stage { display: grid; grid-template-columns: 28px 1fr; gap: 14px; padding: 16px 18px;
+           align-items: start; }
+  .stage + .stage { border-top: 1px solid var(--border); }
+  .stage .icon { width: 28px; height: 28px; display: grid; place-items: center; }
+  .stage .name { font-weight: 500; }
+  .stage .detail { color: var(--muted); font-size: 14px; min-height: 0; }
+  .stage[data-state="pending"] .name { color: var(--faint); }
+  .ring-pending { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); }
+  .ring-active { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--accent-soft);
+                 border-top-color: var(--accent); animation: spin .8s linear infinite; }
+  .check { width: 24px; height: 24px; border-radius: 50%; background: var(--good); color: #fff;
+           display: grid; place-items: center; animation: pop .35s var(--ease); }
+  .check path { stroke-dasharray: 20; stroke-dashoffset: 20; animation: draw .35s .1s var(--ease) forwards; }
+  @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .error-card { margin-top: 18px; border: 1px solid var(--error); background: var(--error-soft);
+                color: var(--text); border-radius: var(--radius); padding: 16px 18px; }
+  .error-card p { margin: 0 0 12px; }
+  .btn { border: 1px solid var(--border); background: var(--surface); border-radius: 10px;
+         padding: 10px 16px; min-height: 44px; cursor: pointer; font-weight: 500; }
+  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .btn:hover { border-color: var(--accent); }
+  .bottom-bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface);
+                border-top: 1px solid var(--border); padding: 12px 20px 14px; }
+  .bottom-bar .row { display: flex; justify-content: space-between; font-size: 13px;
+                     color: var(--muted); margin-bottom: 8px; gap: 12px; }
+  .bottom-bar .row b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .bar-fill { height: 100%; width: 100%; border-radius: 999px; background: var(--accent);
+              transform-origin: left; transform: scaleX(0); transition: transform .4s var(--ease);
+              position: relative; overflow: hidden; }
+  .bar-fill::after { content: ""; position: absolute; inset: 0;
+                     background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+                     animation: shimmer 1.4s linear infinite; }
+  @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+  /* ---------- results ---------- */
+  #results .topbar { position: sticky; top: 0; z-index: 5; }
+  .mini-search { flex: 1; max-width: 560px; display: flex; align-items: center; gap: 8px;
+                 background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+                 padding: 4px 4px 4px 16px; }
+  .mini-search:focus-within { border-color: var(--accent); }
+  .mini-search input { flex: 1; border: 0; outline: 0; background: transparent; min-width: 0;
+                       font-size: 15px; padding: 8px 0; }
+  .mini-search .go { width: 36px; height: 36px; }
+  .wrap { width: min(920px, 100%); margin: 0 auto; padding: 28px 16px 80px; }
+  .result-head h1 { font-size: clamp(24px, 3.6vw, 32px); font-weight: 500; letter-spacing: -.02em;
+                    margin: 0 0 6px; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .criteria { margin: 14px 0 0; padding: 12px 14px; background: var(--surface-2); border-radius: 10px;
+              color: var(--muted); font-size: 14px; }
+  .criteria b { color: var(--text); font-weight: 600; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 26px 0 22px;
+          overflow-x: auto; scrollbar-width: none; }
+  .tab { border: 0; background: none; cursor: pointer; padding: 12px 14px; min-height: 44px;
+         color: var(--muted); font-weight: 500; white-space: nowrap; position: relative;
+         display: inline-flex; gap: 8px; align-items: center; }
+  .tab:hover { color: var(--text); }
+  .tab[aria-selected="true"] { color: var(--text); }
+  .tab[aria-selected="true"]::after { content: ""; position: absolute; left: 10px; right: 10px;
+                                      bottom: -1px; height: 2px; background: var(--accent); border-radius: 2px; }
+  .tab .count { font-size: 12px; background: var(--surface-2); padding: 1px 7px; border-radius: 999px; }
+  .panel { animation: fade-in .3s var(--ease); }
+
+  /* papers */
+  .paper { display: grid; grid-template-columns: 34px 1fr; gap: 14px; padding: 18px 0;
+           border-bottom: 1px solid var(--border); scroll-margin-top: 90px; }
+  .paper.flash { animation: flash 1.6s var(--ease); }
+  @keyframes flash { 0%, 40% { background: var(--accent-soft); } 100% { background: transparent; } }
+  .rank { width: 30px; height: 30px; border-radius: 8px; background: var(--surface-2);
+          display: grid; place-items: center; font-weight: 600; font-size: 14px;
+          font-variant-numeric: tabular-nums; }
+  .paper h3 { margin: 0 0 4px; font-size: 17px; line-height: 1.35; font-weight: 600; }
+  .paper h3 a { color: var(--text); text-decoration: none; }
+  .paper h3 a:hover { color: var(--accent); text-decoration: underline; }
+  .paper .byline { color: var(--muted); font-size: 14px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+  .tag { font-size: 12.5px; border-radius: 999px; padding: 3px 10px; border: 1px solid var(--border);
+         color: var(--muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tag b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tag.level { background: var(--accent-soft); border-color: transparent; color: var(--accent-strong); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+  .rationale { margin: 10px 0 0; color: var(--muted); font-size: 14.5px; }
+  details.abstract { margin-top: 8px; font-size: 14.5px; }
+  details.abstract summary { cursor: pointer; color: var(--accent); min-height: 32px;
+                             display: inline-flex; align-items: center; }
+  details.abstract p { color: var(--muted); margin: 6px 0 0; }
+
+  /* review */
+  .overview { font-size: 19px; line-height: 1.5; margin: 0 0 24px; letter-spacing: -.005em; }
+  .section-card { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius);
+                  padding: 20px 22px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .section-card h2 { margin: 0 0 10px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+  .section-card h2 .num { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft);
+                          color: var(--accent-strong); font-size: 13px; display: grid; place-items: center; }
+  .section-card p { margin: 0; }
+  .section-card ul { margin: 12px 0 0; padding-left: 20px; color: var(--muted); }
+  .section-card li { margin: 4px 0; }
+  .cite { border: 0; background: var(--surface-2); color: var(--accent-strong); font-size: 12px;
+          font-weight: 600; border-radius: 6px; padding: 1px 6px; margin: 0 1px; cursor: pointer;
+          vertical-align: 1px; font-variant-numeric: tabular-nums; }
+  .cite:hover { background: var(--accent-soft); }
+  .note { color: var(--faint); font-size: 13px; margin-top: 18px; }
+
+  /* chart */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 12px; font-size: 14px; }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend .swatch { width: 18px; height: 3px; border-radius: 2px; }
+  .chart-box { position: relative; border: 1px solid var(--border); border-radius: var(--radius);
+               background: var(--surface); padding: 12px 8px 4px; box-shadow: var(--shadow); }
+  .chart-box svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart-box text { fill: var(--muted); font-size: 12px; }
+  .tooltip { position: absolute; pointer-events: none; background: var(--surface); color: var(--text);
+             border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 13px;
+             box-shadow: var(--shadow); min-width: 160px; max-width: 280px; z-index: 3;
+             transition: opacity .12s; }
+  .tooltip .t-head { font-weight: 600; margin-bottom: 4px; }
+  .tooltip .t-row { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+  .tooltip .t-row span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .clusters { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;
+              margin-top: 18px; }
+  .cluster { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--surface); }
+  .cluster h3 { margin: 0 0 6px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .cluster p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .cluster ul { margin: 8px 0 0; padding-left: 18px; font-size: 13.5px; }
+
+  /* tables */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .table-scroll { overflow-x: auto; }
+  .level-bar { height: 8px; border-radius: 4px; background: var(--accent); min-width: 2px; }
+  .level-pill { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
+                background: var(--accent-soft); color: var(--accent-strong); font-weight: 700; }
+  h2.sub { font-size: 16px; margin: 30px 0 10px; }
+  .method { color: var(--muted); font-size: 14.5px; }
+  .method ol { padding-left: 20px; }
+
+  @media (max-width: 640px) {
+    .topbar { padding: 10px 12px; gap: 10px; }
+    .topbar .brand span { display: none; }
+    .paper { grid-template-columns: 1fr; gap: 8px; }
+    .section-card { padding: 16px; }
+    .hide-sm { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+                             transition-duration: .001ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2"/>
+    <ellipse cx="16" cy="16" rx="6" ry="13" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M3.5 12h25M3.5 20h25" stroke="currentColor" stroke-width="2"/>
+  </symbol>
+  <symbol id="arrow" viewBox="0 0 24 24">
+    <path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="search" viewBox="0 0 24 24">
+    <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<!-- ================= HOME ================= -->
+<section id="home" class="view">
+  <main>
+    <div class="wordmark">
+      <svg width="44" height="44" aria-hidden="true"><use href="#logo"/></svg>
+      <b>paper atlas</b>
+    </div>
+    <h1>What do you want to search for today?</h1>
+    <form class="search" id="search-form" autocomplete="off">
+      <label for="q" class="sr-only">Research topic or keywords</label>
+      <textarea id="q" rows="1" maxlength="300"
+                placeholder="A topic or a few keywords, e.g. LLM evaluation for clinical text"></textarea>
+      <div class="search-row">
+        <span class="search-hint">Finds, scores, and reviews the 10 best papers</span>
+        <button class="go" type="submit" id="go" aria-label="Search" disabled>
+          <svg width="20" height="20" aria-hidden="true"><use href="#arrow"/></svg>
+        </button>
+      </div>
+    </form>
+    <p class="form-error" id="form-error" role="alert"></p>
+    <div class="chips" id="suggestions"></div>
+    <div class="recent" id="recent" hidden>
+      <h2>Recent searches</h2>
+      <ul id="recent-list"></ul>
+    </div>
+  </main>
+  <footer class="home-foot">Sources: Semantic Scholar · Scored by MiniLM, BGE and Claude</footer>
+</section>
+
+<!-- ================= PROGRESS ================= -->
+<section id="progress" class="view" hidden>
+  <header class="topbar">
+    <a class="brand" href="#" data-home><svg width="26" height="26" aria-hidden="true"><use href="#logo"/></svg><span>paper atlas</span></a>
+  </header>
+  <main>
+    <div class="run-card">
+      <h1 class="run-query" id="run-query"></h1>
+      <p class="run-sub" id="run-sub" aria-live="polite"></p>
+      <div class="loader" role="progressbar" aria-label="Search progress" aria-valuemin="0"
+           aria-valuemax="100" aria-valuenow="0" id="loader">
+        <svg viewBox="0 0 132 132" aria-hidden="true">
+          <circle class="track" cx="66" cy="66" r="56" fill="none" stroke-width="8"/>
+          <circle class="spin" cx="66" cy="66" r="56" fill="none" stroke-width="8"
+                  stroke-dasharray="40 312" stroke-linecap="round"/>
+          <circle class="fill" id="ring-fill" cx="66" cy="66" r="56" fill="none" stroke-width="8"
+                  stroke-linecap="round" stroke-dasharray="351.86" stroke-dashoffset="351.86"
+                  transform="rotate(-90 66 66)"/>
+        </svg>
+        <div class="pct"><span id="pct-num">0</span><small>%</small></div>
+      </div>
+      <ol class="stages" id="stages"></ol>
+      <div class="error-card" id="run-error" hidden role="alert">
+        <p id="run-error-text"></p>
+        <button class="btn primary" type="button" id="retry">Try again</button>
+        <button class="btn" type="button" data-home>New search</button>
+      </div>
+    </div>
+  </main>
+  <div class="bottom-bar">
+    <div class="row"><span id="bar-msg">Starting</span><b id="bar-pct">0%</b></div>
+    <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+  </div>
+</section>
+
+<!-- ================= RESULTS ================= -->
+<section id="results" class="view" hidden>
+  <header class="topbar">
+    <a class="brand" href="#" data-home><svg width="26" height="26" aria-hidden="true"><use href="#logo"/></svg><span>paper atlas</span></a>
+    <form class="mini-search" id="mini-form" autocomplete="off">
+      <svg width="18" height="18" aria-hidden="true" style="color:var(--faint);flex:none"><use href="#search"/></svg>
+      <label for="mini-q" class="sr-only">New search</label>
+      <input id="mini-q" maxlength="300" placeholder="Search another topic">
+      <button class="go" type="submit" aria-label="Search"><svg width="18" height="18" aria-hidden="true"><use href="#arrow"/></svg></button>
+    </form>
+  </header>
+  <div class="wrap">
+    <div class="result-head">
+      <h1 id="res-title"></h1>
+      <div class="meta" id="res-meta"></div>
+      <p class="criteria" id="res-criteria"></p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Results">
+      <button class="tab" role="tab" id="tab-papers" aria-controls="panel-papers" data-tab="papers">Candidate papers <span class="count">10</span></button>
+      <button class="tab" role="tab" id="tab-review" aria-controls="panel-review" data-tab="review">Systematic review</button>
+      <button class="tab" role="tab" id="tab-topics" aria-controls="panel-topics" data-tab="topics">Topic clusters</button>
+      <button class="tab" role="tab" id="tab-rubric" aria-controls="panel-rubric" data-tab="rubric">Scoring rubric</button>
+    </div>
+    <div class="panel" role="tabpanel" id="panel-papers" aria-labelledby="tab-papers" hidden></div>
+    <div class="panel" role="tabpanel" id="panel-review" aria-labelledby="tab-review" hidden></div>
+    <div class="panel" role="tabpanel" id="panel-topics" aria-labelledby="tab-topics" hidden></div>
+    <div class="panel" role="tabpanel" id="panel-rubric" aria-labelledby="tab-rubric" hidden></div>
+  </div>
+</section>
+
+<script>
+const SUGGESTIONS = [
+  "LLM evaluation and reliability for clinical and health text",
+  "self-supervised learning on wearable sensor data for health",
+  "retrieval-augmented generation for medical question answering",
+];
+const COLORS = ["--s1", "--s2", "--s3", "--s4", "--s5"];
+const $ = sel => document.querySelector(sel);
+const state = { jobId: null, query: "", shown: 0, target: 0, result: null, timer: null };
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c =>
+    ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+}
+function color(i) { return `var(${COLORS[i] || "--faint"})`; }
+function fmt(x, d = 2) { return x === null || x === undefined ? "–" : Number(x).toFixed(d); }
+function ago(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+// ---------------- views ----------------
+function show(id) {
+  for (const v of ["home", "progress", "results"]) $("#" + v).hidden = v !== id;
+  window.scrollTo(0, 0);
+}
+function goHome() {
+  clearInterval(state.timer);
+  history.replaceState(null, "", location.pathname);
+  show("home");
+  loadRecent();
+  $("#q").focus();
+}
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-home]")) { e.preventDefault(); goHome(); }
+});
+
+// ---------------- home ----------------
+const q = $("#q");
+function autosize() { q.style.height = "auto"; q.style.height = Math.min(q.scrollHeight, 200) + "px"; }
+q.addEventListener("input", () => { autosize(); $("#go").disabled = q.value.trim().length < 3; $("#form-error").textContent = ""; });
+q.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#search-form").requestSubmit(); }
+});
+$("#search-form").addEventListener("submit", e => { e.preventDefault(); startSearch(q.value); });
+$("#mini-form").addEventListener("submit", e => { e.preventDefault(); startSearch($("#mini-q").value); });
+
+$("#suggestions").innerHTML = SUGGESTIONS.map(s =>
+  `<button class="chip" type="button" data-s="${esc(s)}"><svg width="14" height="14" aria-hidden="true"><use href="#search"/></svg>${esc(s)}</button>`).join("");
+$("#suggestions").addEventListener("click", e => {
+  const b = e.target.closest("[data-s]");
+  if (b) { q.value = b.dataset.s; autosize(); $("#go").disabled = false; startSearch(b.dataset.s); }
+});
+
+async function loadRecent() {
+  try {
+    const runs = await (await fetch("/api/runs")).json();
+    $("#recent").hidden = !runs.length;
+    $("#recent-list").innerHTML = runs.map(r =>
+      `<li><button type="button" data-run="${esc(r.file)}"><span>${esc(r.query)}</span><time>${esc(ago(r.created_at))}</time></button></li>`).join("");
+  } catch { $("#recent").hidden = true; }
+}
+$("#recent-list").addEventListener("click", e => {
+  const b = e.target.closest("[data-run]");
+  if (b) openRun(b.dataset.run);
+});
+
+async function openRun(file) {
+  const res = await fetch("/api/runs/" + encodeURIComponent(file));
+  if (!res.ok) { goHome(); return; }
+  history.replaceState(null, "", "#run=" + encodeURIComponent(file));
+  renderResults(await res.json());
+}
+
+// ---------------- progress ----------------
+async function startSearch(text) {
+  const query = (text || "").trim();
+  if (query.length < 3) { $("#form-error").textContent = "Type a topic or a few keywords."; return; }
+  state.query = query;
+  let res;
+  try {
+    res = await fetch("/api/search", { method: "POST", headers: { "Content-Type": "application/json" },
+                                       body: JSON.stringify({ query }) });
+  } catch {
+    $("#form-error").textContent = "Can't reach the paper-atlas server. Is app.py running?";
+    return;
+  }
+  const data = await res.json();
+  if (!res.ok) { $("#form-error").textContent = data.error || "Search failed."; return; }
+  state.jobId = data.job_id;
+  state.shown = 0; state.target = 0;
+  $("#run-query").textContent = query;
+  $("#run-sub").textContent = "Starting…";
+  $("#run-error").hidden = true;
+  renderStages(["Processing your query", "Identifying candidate papers", "Scoring the papers", "Finishing scoring"], 0, "running", "");
+  setPercent(0, true);
+  show("progress");
+  clearInterval(state.timer);
+  state.timer = setInterval(poll, 350);
+  poll();
+}
+$("#retry").addEventListener("click", () => startSearch(state.query));
+
+async function poll() {
+  let job;
+  try { job = await (await fetch("/api/jobs/" + state.jobId)).json(); }
+  catch { return; }  // transient; try again on the next tick
+  if (job.error && !job.status) { clearInterval(state.timer); return; }
+  state.target = job.percent;
+  renderStages(job.stages, job.stage, job.status, job.message);
+  $("#bar-msg").textContent = job.status === "error" ? "Stopped" : job.message;
+  $("#run-sub").textContent = job.status === "error" ? "" : job.message;
+  if (job.status === "error") {
+    clearInterval(state.timer);
+    $("#run-error-text").textContent = job.error;
+    $("#run-error").hidden = false;
+  } else if (job.status === "done") {
+    clearInterval(state.timer);
+    state.target = 100;
+    setTimeout(() => renderResults(job.result), 900);  // let the last check mark land
+  }
+}
+
+const CHECK = `<span class="check"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7.5l2.6 2.6L11 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
+function renderStages(names, current, status, message) {
+  const list = $("#stages");
+  if (list.children.length !== names.length) {
+    list.innerHTML = names.map((n, i) =>
+      `<li class="stage" data-state="pending"><span class="icon"></span><div><div class="name">${i + 1}. ${esc(n)}</div><div class="detail"></div></div></li>`).join("");
+  }
+  [...list.children].forEach((li, i) => {
+    const st = status === "done" || i < current ? "done"
+             : i === current ? (status === "error" ? "error" : "active") : "pending";
+    if (li.dataset.state !== st || !li.querySelector(".icon").innerHTML) {
+      li.dataset.state = st;
+      li.querySelector(".icon").innerHTML = st === "done" ? CHECK
+        : st === "active" ? '<span class="ring-active"></span>'
+        : st === "error" ? '<span class="ring-pending" style="border-color:var(--error)"></span>'
+        : '<span class="ring-pending"></span>';
+      li.querySelector(".name").setAttribute("aria-label", `${li.querySelector(".name").textContent} — ${st}`);
+    }
+    li.querySelector(".detail").textContent = st === "active" ? message : st === "done" ? "Done" : "";
+  });
+}
+
+// Ease the displayed number toward the server's number so it never jumps.
+function setPercent(p, instant) {
+  if (instant) state.shown = p;
+  const ring = $("#ring-fill"), c = 351.86;
+  ring.style.strokeDashoffset = c * (1 - state.shown / 100);
+  $("#pct-num").textContent = Math.round(state.shown);
+  $("#bar-pct").textContent = Math.round(state.shown) + "%";
+  $("#bar-fill").style.transform = `scaleX(${state.shown / 100})`;
+  $("#loader").setAttribute("aria-valuenow", Math.round(state.shown));
+}
+(function tick() {
+  if (Math.abs(state.target - state.shown) > 0.05) {
+    state.shown += (state.target - state.shown) * 0.12;
+    if (state.target - state.shown < 0.3) state.shown = state.target;
+    setPercent(state.shown);
+  }
+  requestAnimationFrame(tick);
+})();
+
+// ---------------- results ----------------
+function renderResults(r) {
+  state.result = r;
+  $("#res-title").textContent = r.topic || r.query;
+  $("#res-meta").innerHTML = [
+    `Search: “${esc(r.query)}”`,
+    `${r.n_candidates} candidates · ${r.n_shortlisted} judged by the LLM`,
+    `$${Number(r.cost_usd).toFixed(3)} in API calls`,
+    esc(ago(r.created_at)),
+  ].map(x => `<span>${x}</span>`).join("");
+  $("#res-criteria").innerHTML = `<b>Relevance criteria:</b> ${esc(r.criteria)}`;
+  $("#mini-q").value = "";
+  renderPapers(r); renderReview(r); renderTopics(r); renderRubric(r);
+  show("results");
+  selectTab("review");
+}
+
+document.querySelector(".tabs").addEventListener("click", e => {
+  const t = e.target.closest("[data-tab]");
+  if (t) selectTab(t.dataset.tab);
+});
+document.querySelector(".tabs").addEventListener("keydown", e => {
+  if (!["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+  const tabs = [...document.querySelectorAll(".tab")];
+  const i = tabs.indexOf(document.activeElement);
+  const next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+  next.focus(); selectTab(next.dataset.tab);
+});
+function selectTab(name) {
+  for (const t of document.querySelectorAll(".tab")) {
+    const on = t.dataset.tab === name;
+    t.setAttribute("aria-selected", on); t.tabIndex = on ? 0 : -1;
+    $("#panel-" + t.dataset.tab).hidden = !on;
+    if (on) t.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+  if (name === "topics" && state.result) drawChart(state.result);
+}
+
+function clusterName(r, i) { return (r.clusters.series.find(s => s.cluster === i) || {}).name || "Other"; }
+
+function renderPapers(r) {
+  $("#tab-papers .count").textContent = r.papers.length;
+  $("#panel-papers").innerHTML = r.papers.map(p => {
+    const authors = p.authors.length > 3 ? p.authors.slice(0, 3).join(", ") + " et al." : p.authors.join(", ");
+    const level = p.level ? r.rubric.find(x => x.level === p.level) : null;
+    return `<article class="paper" id="paper-${p.rank}">
+      <div class="rank">${p.rank}</div>
+      <div>
+        <h3><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a></h3>
+        <div class="byline">${esc(authors)}${authors ? " · " : ""}${esc(p.venue || "Venue unknown")} · ${esc(p.year ?? "n.d.")} · ${Number(p.citations || 0).toLocaleString()} citations</div>
+        <div class="tags">
+          ${level ? `<span class="tag level">LLM <b>${p.level}/5</b> ${esc(level.label)}</span>` : `<span class="tag">LLM <b>–</b></span>`}
+          <span class="tag">BGE <b>${fmt(p.scores.bge)}</b></span>
+          <span class="tag">MiniLM <b>${fmt(p.scores.minilm)}</b></span>
+          <span class="tag"><span class="dot" style="background:${color(p.cluster)}"></span>${esc(clusterName(r, p.cluster))}</span>
+          <span class="tag">${p.source_text_kind === "full_text" ? "Full text read" : "Abstract only"}</span>
+        </div>
+        ${p.rationale ? `<p class="rationale">${esc(p.rationale)}</p>` : ""}
+        <details class="abstract"><summary>Abstract</summary><p>${esc(p.abstract)}</p></details>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+function citeLinks(text, r) {
+  // Turn "[2, 7]" into clickable chips that jump to those papers.
+  return esc(text).replace(/\[(\d+(?:\s*[,–-]\s*\d+)*)\]/g, (m, inner) =>
+    inner.split(/\s*,\s*/).map(n => {
+      const p = r.papers.find(x => String(x.rank) === n.trim());
+      return p ? `<button class="cite" type="button" data-rank="${p.rank}" title="${esc(p.title)}">${p.rank}</button>`
+               : `[${esc(n)}]`;
+    }).join(""));
+}
+
+function renderReview(r) {
+  const full = r.papers.filter(p => p.source_text_kind === "full_text").length;
+  $("#panel-review").innerHTML = `
+    <p class="overview">${citeLinks(r.review.overview, r)}</p>
+    ${r.review.sections.map((s, i) => `
+      <section class="section-card" aria-labelledby="sec-${s.key}">
+        <h2 id="sec-${s.key}"><span class="num">${i + 1}</span>${esc(s.title)}</h2>
+        <p>${citeLinks(s.summary, r)}</p>
+        ${s.key_points.length ? `<ul>${s.key_points.map(k => `<li>${citeLinks(k, r)}</li>`).join("")}</ul>` : ""}
+      </section>`).join("")}
+    <p class="note">Synthesized by ${esc(r.models.llm)} from structured extractions of ${r.papers.length} papers
+      (${full} full text, ${r.papers.length - full} abstract only). Numbers in brackets link to the paper list.
+      Check claims against the papers before citing them.</p>`;
+}
+$("#panel-review").addEventListener("click", e => {
+  const b = e.target.closest(".cite");
+  if (!b) return;
+  selectTab("papers");
+  const el = $("#paper-" + b.dataset.rank);
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+});
+
+function renderTopics(r) {
+  const c = r.clusters;
+  const byId = Object.fromEntries(r.papers.map(p => [p.paper_id, p]));
+  $("#panel-topics").innerHTML = `
+    <p class="method" style="margin-top:0">All ${r.n_candidates} candidates were grouped by meaning
+      (embeddings of title and abstract, k-means). Each line counts how many papers in a topic had appeared
+      by each year; dots mark the top 10.</p>
+    <div class="legend" id="legend">${c.series.map(s =>
+      `<span><span class="swatch" style="background:${color(s.cluster)}"></span>${esc(s.name)} <span style="color:var(--faint)">(${s.size})</span></span>`).join("")}
+      <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="var(--surface)" stroke="var(--text)" stroke-width="2"/></svg> top-10 paper</span></div>
+    <div class="chart-box" id="chart-box"><div class="tooltip" id="tip" style="opacity:0"></div></div>
+    <div class="clusters">${c.series.map(s => `
+      <div class="cluster"><h3><span class="dot" style="background:${color(s.cluster)}"></span>${esc(s.name)}</h3>
+        <p>${s.size} papers · ${s.top_papers.length} in the top 10</p>
+        ${s.top_papers.length ? `<ul>${s.top_papers.map(id => byId[id]).filter(Boolean)
+          .sort((a, b) => a.rank - b.rank).map(p => `<li>#${p.rank} ${esc(p.title)}</li>`).join("")}</ul>` : ""}
+      </div>`).join("")}</div>
+    <details style="margin-top:16px"><summary style="cursor:pointer;color:var(--accent)">View as table</summary>
+      <div class="table-scroll"><table><thead><tr><th>Year</th>${c.series.map(s => `<th>${esc(s.name)}</th>`).join("")}</tr></thead>
+      <tbody>${c.years.map((y, i) => `<tr><td>${y}</td>${c.series.map(s => `<td class="num">${s.points[i].count}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+    </details>`;
+}
+
+function drawChart(r) {
+  const box = $("#chart-box"), tip = $("#tip");
+  const c = r.clusters, years = c.years;
+  box.querySelector("svg")?.remove();
+  if (!years.length) { box.insertAdjacentHTML("afterbegin", '<p class="method">No publication years to plot.</p>'); return; }
+  const W = Math.max(320, box.clientWidth - 16), H = Math.round(Math.min(420, Math.max(260, W * 0.5)));
+  const m = { l: 40, r: W < 520 ? 16 : 190, t: 24, b: 32 };
+  const maxY = Math.max(1, ...c.series.flatMap(s => s.points.map(p => p.count)));
+  const x = y => m.l + (years.length === 1 ? (W - m.l - m.r) / 2 : (y - years[0]) / (years.at(-1) - years[0]) * (W - m.l - m.r));
+  const yv = v => H - m.b - v / maxY * (H - m.t - m.b);
+  const ticks = niceTicks(maxY);
+  const showLabels = W >= 520 && c.series.length <= 4;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative papers per topic cluster by year">`;
+  svg += ticks.map(t => `<line x1="${m.l}" x2="${W - m.r}" y1="${yv(t)}" y2="${yv(t)}" stroke="var(--grid)"/>
+                         <text x="${m.l - 8}" y="${yv(t) + 4}" text-anchor="end">${t}</text>`).join("");
+  const step = Math.ceil(years.length / Math.max(2, Math.floor((W - m.l - m.r) / 56)));
+  svg += years.filter((_, i) => i % step === 0 || i === years.length - 1)
+    .map(y => `<text x="${x(y)}" y="${H - 10}" text-anchor="middle">${y}</text>`).join("");
+  svg += `<text x="${m.l - 8}" y="${m.t - 10}" text-anchor="start">Papers so far</text>`;
+  svg += `<line id="xhair" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" stroke="var(--faint)" stroke-dasharray="3 3" opacity="0"/>`;
+  for (const s of c.series) {
+    const d = s.points.map((p, i) => `${i ? "L" : "M"}${x(p.year).toFixed(1)},${yv(p.count).toFixed(1)}`).join("");
+    svg += `<path d="${d}" fill="none" stroke="${color(s.cluster)}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  if (showLabels) {
+    // Direct labels at each line's end, nudged apart so they never overlap.
+    const labels = c.series.map(s => ({ s, y: yv(s.points.at(-1).count) + 4 })).sort((a, b) => a.y - b.y);
+    for (let i = 1; i < labels.length; i++) labels[i].y = Math.max(labels[i].y, labels[i - 1].y + 16);
+    for (const { s, y } of labels) {
+      const name = s.name.length > 28 ? s.name.slice(0, 27) + "…" : s.name;
+      svg += `<text x="${x(years.at(-1)) + 10}" y="${y}" style="fill:var(--text)">${esc(name)}</text>`;
+    }
+  }
+  const byId = Object.fromEntries(r.papers.map(p => [p.paper_id, p]));
+  for (const s of c.series) {
+    for (const id of s.top_papers) {
+      const p = byId[id];
+      if (!p || !p.year) continue;
+      const pt = s.points.find(q => q.year === p.year);
+      if (!pt) continue;
+      svg += `<circle class="mark" cx="${x(p.year)}" cy="${yv(pt.count)}" r="6" fill="var(--surface)"
+                stroke="${color(s.cluster)}" stroke-width="2.5" data-rank="${p.rank}" tabindex="0"
+                aria-label="#${p.rank} ${esc(p.title)}"/>`;
+    }
+  }
+  svg += `<rect id="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent"/></svg>`;
+  box.insertAdjacentHTML("afterbegin", svg);
+
+  const el = box.querySelector("svg"), hair = el.querySelector("#xhair");
+  function place(evt) {
+    const b = box.getBoundingClientRect();
+    let left = evt.clientX - b.left + 14, top = evt.clientY - b.top + 14;
+    if (left + 280 > b.width) left = evt.clientX - b.left - 14 - tip.offsetWidth;
+    tip.style.left = left + "px"; tip.style.top = top + "px"; tip.style.opacity = 1;
+  }
+  el.querySelector("#hit").addEventListener("mousemove", evt => {
+    const pt = el.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const loc = pt.matrixTransform(el.getScreenCTM().inverse());
+    const i = years.reduce((best, y, j) => Math.abs(x(y) - loc.x) < Math.abs(x(years[best]) - loc.x) ? j : best, 0);
+    hair.setAttribute("x1", x(years[i])); hair.setAttribute("x2", x(years[i])); hair.setAttribute("opacity", 1);
+    tip.innerHTML = `<div class="t-head">By ${years[i]}</div>` + [...c.series]
+      .sort((a, b) => b.points[i].count - a.points[i].count)
+      .map(s => `<div class="t-row"><span><span class="dot" style="background:${color(s.cluster)}"></span>${esc(s.name)}</span><b>${s.points[i].count}</b></div>`).join("");
+    place(evt);
+  });
+  el.querySelector("#hit").addEventListener("mouseleave", () => { tip.style.opacity = 0; hair.setAttribute("opacity", 0); });
+  el.querySelectorAll(".mark").forEach(mk => {
+    const p = r.papers.find(q => String(q.rank) === mk.dataset.rank);
+    const showTip = evt => {
+      tip.innerHTML = `<div class="t-head">#${p.rank} ${esc(p.title)}</div><div class="t-row"><span>${esc(clusterName(r, p.cluster))}</span><b>${p.year}</b></div>`;
+      if (evt.clientX) place(evt);
+      else { const b = mk.getBoundingClientRect(), bb = box.getBoundingClientRect();
+             tip.style.left = (b.right - bb.left + 8) + "px"; tip.style.top = (b.top - bb.top) + "px"; tip.style.opacity = 1; }
+    };
+    mk.addEventListener("mousemove", showTip);
+    mk.addEventListener("focus", showTip);
+    mk.addEventListener("mouseleave", () => { tip.style.opacity = 0; });
+    mk.addEventListener("blur", () => { tip.style.opacity = 0; });
+    mk.addEventListener("click", () => { selectTab("papers"); $("#paper-" + p.rank).scrollIntoView({ behavior: "smooth", block: "center" }); });
+  });
+}
+function niceTicks(max) {
+  const raw = max / 4, mag = 10 ** Math.floor(Math.log10(raw)), step = [1, 2, 5, 10].map(s => s * mag).find(s => s >= raw);
+  const out = []; for (let v = 0; v <= max + 1e-9; v += step) out.push(Math.round(v)); return out;
+}
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (!$("#panel-topics").hidden && state.result) drawChart(state.result); }, 120);
+});
+
+function renderRubric(r) {
+  const maxCount = Math.max(1, ...r.rubric.map(x => x.count));
+  $("#panel-rubric").innerHTML = `
+    <div class="method">
+      <p style="margin-top:0">How the 10 papers were chosen:</p>
+      <ol>
+        <li><b>Two local cross-encoders</b> (MiniLM and BGE) read the criteria and each of the ${r.n_candidates} candidates together and output a relevance score from 0 to 1.</li>
+        <li>The <b>top ${r.n_shortlisted}</b> by their average go to an <b>LLM judge</b> (${esc(r.models.llm)}), which scores each against the rubric below and writes one sentence on why.</li>
+        <li>Papers are <b>ranked by the LLM score</b>; the cross-encoder average breaks ties.</li>
+      </ol>
+    </div>
+    <h2 class="sub">Rubric (LLM judge)</h2>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Level</th><th>Label</th><th>Meaning</th><th>Shortlisted papers</th></tr></thead>
+      <tbody>${r.rubric.map(x => `<tr>
+        <td><span class="level-pill">${x.level}</span></td><td><b>${esc(x.label)}</b></td><td>${esc(x.description)}</td>
+        <td class="num"><div style="display:flex;align-items:center;gap:8px"><div class="level-bar" style="width:${Math.round(x.count / maxCount * 90)}px"></div>${x.count}</div></td>
+      </tr>`).join("")}</tbody>
+    </table></div>
+    <h2 class="sub">Scores for the top 10</h2>
+    <div class="table-scroll"><table>
+      <thead><tr><th>#</th><th>Paper</th><th>LLM (1-5)</th><th class="hide-sm">BGE</th><th class="hide-sm">MiniLM</th><th>Why</th></tr></thead>
+      <tbody>${r.papers.map(p => `<tr>
+        <td class="num">${p.rank}</td><td>${esc(p.title)}</td>
+        <td class="num">${p.level ? `<span class="level-pill">${p.level}</span>` : "–"}</td>
+        <td class="num hide-sm">${fmt(p.scores.bge)}</td><td class="num hide-sm">${fmt(p.scores.minilm)}</td>
+        <td style="color:var(--muted)">${esc(p.rationale || "")}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
+}
+
+// ---------------- start ----------------
+const m = location.hash.match(/^#run=(.+)$/);
+if (m) openRun(decodeURIComponent(m[1])); else { loadRecent(); q.focus(); }
+</script>
+</body>
+</html>
