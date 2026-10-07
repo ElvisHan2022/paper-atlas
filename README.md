@@ -32,11 +32,24 @@ The search then runs in four stages:
 1. **Processing your query.** Claude restates it as a topic and writes relevance criteria.
 2. **Identifying candidate papers.** It searches the chosen sources (up to 80 + 80 + 60 + 25 hits) and merges duplicates.
 3. **Scoring the papers.** MiniLM and BGE score every candidate locally; the top 30 go to the LLM judge, which scores relevance (1-5) and, with a lens, lens fit (1-5). The final rank is 60% relevance + 40% lens fit.
-4. **Finishing scoring.** It extracts the top 10, writes the review, and groups all candidates into topics.
+4. **Finishing scoring.** It extracts the top 10, writes the review, has an **independent checker** audit every cited claim, and groups all candidates into topics.
+
+### How the work is split (and why it isn't more "agentic")
+
+The search is a fixed workflow, not a free-roaming agent, because its steps are known in advance. Following Anthropic's guidance, it fans out only where the work is truly independent:
+
+- **Sources** are searched in parallel.
+- **The LLM judge and extraction** run one call per paper, six at a time.
+- **The five review sections** are verified in parallel.
+
+Two rules from that guidance shape the rest:
+
+- **The writer never grades its own work.** The review is audited by a separate call that didn't write it. That checker sees only the papers' abstracts and evidence quotes, and marks each claim supported, partly supported or not supported.
+- **Failure is cheap.** Every step is logged to `outputs/runs/<run>.log.jsonl` as it happens, and HTTP and LLM answers are cached, so re-running a failed search replays the finished steps for free. The log is shown at the bottom of the Scoring rubric tab.
 
 Results open in four tabs:
 - **Candidate papers:** the top 10, with scores, the judge's reasoning, evidence type (RCT, meta-analysis…) and venue type.
-- **Systematic review:** five sections (study design, methods, results, limitations, discussion), with every claim linked to its papers.
+- **Systematic review:** five sections (study design, methods, results, limitations, discussion), with every claim linked to its papers and marked by the independent check.
 - **Topic clusters:** a line chart of papers per topic over time.
 - **Scoring rubric:** how the papers were ranked.
 

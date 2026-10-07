@@ -82,6 +82,16 @@ Also worth reading: scorer-vs-scorer Spearman correlation (`evaluate.py:153-163`
 | Progress as stage spans | Each stage owns a slice of 0-100%, so progress inside a stage maps to the bar and never moves backward. The browser then eases the displayed number toward the real one. | `pipeline.py:28`, `pipeline.py:51-53`, `templates/app.html:560-567` |
 | Grounded synthesis | The review is written from the structured extractions, not the raw papers, and every claim must cite [n]. The UI turns citations into links so you can check them. | `pipeline.py:114-145`, `templates/app.html:633-641` |
 
+## 9. Agent patterns: verifier, fan-out, logs and caching
+
+| Concept | Why it matters here | Where |
+|---|---|---|
+| Maker / checker separation | A model reviewing its own output in the same context skews positive. The verifier gets a fresh context, a "you didn't write this" role, and different evidence (raw abstracts and quotes). | `pipeline.py` `verify_section`, `VERIFY_PROMPT` |
+| Fan out only independent work | Parallel calls pay off when pieces don't need each other: sources, per-paper judging, review sections. The review itself stays one call, because it must compare papers. | `sources.search_all`, `pipeline.judge_many`, `verify_review` |
+| Append-only step log | Written line by line as the run goes, so a crash still leaves a record of how far it got and why. | `pipeline.make_run_log`, `outputs/runs/*.log.jsonl` |
+| Content-addressed LLM cache | Same request means same answer from disk. Retrying a failed search costs only the unfinished steps. | `llm.ask_json(cache=True)` |
+| CLAUDE.md | The briefing a future Claude Code session reads first: commands, layout, and the few rules that must not be broken. | `CLAUDE.md` |
+
 ---
 
 ## Exercises (each one requires changing code)
@@ -101,9 +111,12 @@ Also worth reading: scorer-vs-scorer Spearman correlation (`evaluate.py:153-163`
 4. **Cost-aware cascade.** Write a `cascade` scorer: run BGE on everything, send only
    the middle band (say 0.2-0.8) to the LLM, and keep BGE's score elsewhere. Add it to
    the report with its real cost per 1,000 papers.
-5. **Stream the review.** In `pipeline.py`, switch `write_review` to the streaming API and
+5. **Close the loop on the checker.** When the verifier flags claims, send only those claims
+   back to the writer with the checker's reasons, re-check the rewrite, and stop after one
+   round. Compare the share of supported claims before and after.
+6. **Stream the review.** In `pipeline.py`, switch `write_review` to the streaming API and
    show the review appearing section by section in the UI instead of waiting for all of it.
-6. **Co-citation edges.** Bibliographic coupling looks backward (shared references).
+7. **Co-citation edges.** Bibliographic coupling looks backward (shared references).
    Add `co_citation` edges (two papers cited together by the same later paper) using
    `/paper/{id}/citations` in `fetch.py`, draw them as a third toggle in
    `templates/graph.html`, and compare which communities each edge type produces.
