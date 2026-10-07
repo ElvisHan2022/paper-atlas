@@ -54,5 +54,18 @@ ECE_BINS = 10
 BOOTSTRAP_RESAMPLES = 1000
 RANDOM_SEED = 42
 
+# ---- web app (app.py / pipeline.py) ----
+WEB_HOST = "127.0.0.1"
+WEB_PORT = 8000
+WEB_CANDIDATES = 100        # papers pulled per search (one Semantic Scholar page)
+WEB_LLM_SHORTLIST = 30      # only the top cross-encoder hits go to the LLM judge
+WEB_TOP_N = 10              # papers shown, extracted, and reviewed
+WEB_WORKERS = 6             # parallel LLM calls
+REVIEW_MODEL = LLM_MODEL    # model that writes the systematic review
+LLM_MAX_TOKENS_REVIEW = 4000
+EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"  # bi-encoder for topic clusters
+CLUSTER_K_RANGE = (2, 5)    # try this many topic clusters, keep the best silhouette
+RUNS_DIR = OUTPUT_DIR / "runs"
+
 # ---- demo topic ----
 DEMO_TOPIC = "LLM evaluation and reliability for clinical and health text"

@@ -37,7 +37,7 @@ def parse_json(text):
         return None
 
 
-def ask_json(system, user, max_tokens, validate):
+def ask_json(system, user, max_tokens, validate, model=None):
     """Ask for JSON. `validate(dict) -> bool` decides if the reply is usable.
 
     Returns (data_or_None, stats) where stats sums tokens, latency, and cost over attempts.
@@ -48,7 +48,7 @@ def ask_json(system, user, max_tokens, validate):
     for attempt in range(2):
         start = time.perf_counter()
         resp = client().messages.create(
-            model=config.LLM_MODEL,
+            model=model or config.LLM_MODEL,
             max_tokens=max_tokens,
             system=system,
             messages=messages,

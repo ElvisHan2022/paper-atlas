@@ -50,23 +50,43 @@ def sigmoid(x):
     return 1.0 / (1.0 + np.exp(-np.asarray(x, dtype=float)))
 
 
-def score_cross_encoder(conn, topic, criteria, scorer, papers, batch_size=32):
-    """Cross-encoder: reads query and paper together, outputs one relevance logit."""
-    from sentence_transformers import CrossEncoder  # heavy import, only when needed
+_models = {}
 
-    model = CrossEncoder(config.CROSS_ENCODERS[scorer], device="cpu")
-    query = query_text(topic, criteria)
-    for i in tqdm(range(0, len(papers), batch_size), desc=scorer):
+
+def load_cross_encoder(scorer):
+    """Load each model once per process; the web app reuses it across searches."""
+    if scorer not in _models:
+        from sentence_transformers import CrossEncoder  # heavy import, only when needed
+        _models[scorer] = CrossEncoder(config.CROSS_ENCODERS[scorer], device="cpu")
+    return _models[scorer]
+
+
+def cross_encode(scorer, query, papers, batch_size=32, on_batch=None):
+    """Cross-encoder: reads query and paper together, outputs one relevance logit.
+
+    Returns [(score in (0, 1), latency_ms per paper), ...] in the same order as papers.
+    `on_batch(n_done)` lets a caller show progress.
+    """
+    model = load_cross_encoder(scorer)
+    out = []
+    for i in range(0, len(papers), batch_size):
         batch = papers[i:i + batch_size]
         pairs = [(query, paper_text(p)) for p in batch]
         start = time.perf_counter()
         # Identity activation = raw logits, so we always apply our own sigmoid once.
         logits = model.predict(pairs, activation_fn=_identity(), show_progress_bar=False)
         per_paper_ms = (time.perf_counter() - start) * 1000 / len(batch)
-        for p, s in zip(batch, sigmoid(logits)):
-            db.save_score(conn, p["paper_id"], topic, scorer, float(s),
-                          latency_ms=per_paper_ms, cost_usd=0.0)
-        conn.commit()
+        out += [(float(s), per_paper_ms) for s in sigmoid(logits)]
+        if on_batch:
+            on_batch(len(out))
+    return out
+
+
+def score_cross_encoder(conn, topic, criteria, scorer, papers):
+    results = cross_encode(scorer, query_text(topic, criteria), papers)
+    for p, (s, ms) in tqdm(zip(papers, results), total=len(papers), desc=scorer):
+        db.save_score(conn, p["paper_id"], topic, scorer, s, latency_ms=ms, cost_usd=0.0)
+    conn.commit()
 
 
 def _identity():
@@ -78,15 +98,23 @@ def valid_llm_score(data):
     return isinstance(data.get("score"), int) and 1 <= data["score"] <= 5
 
 
+def judge(topic, criteria, p):
+    """LLM judge for one paper: (score in [0, 1] or None, rationale, stats).
+
+    The rubric score 1-5 is normalized as (score - 1) / 4; None after two bad replies.
+    """
+    prompt = LLM_PROMPT.format(topic=topic, criteria=criteria,
+                               title=p["title"], abstract=p["abstract"])
+    data, stats = llm.ask_json(LLM_SYSTEM, prompt, config.LLM_MAX_TOKENS_SCORE,
+                               valid_llm_score)
+    if not data:
+        return None, None, stats
+    return (data["score"] - 1) / 4, data.get("rationale"), stats
+
+
 def score_llm(conn, topic, criteria, papers):
-    """LLM judge: rubric score 1-5, normalized to [0, 1] as (score - 1) / 4."""
     for p in tqdm(papers, desc="llm"):
-        prompt = LLM_PROMPT.format(topic=topic, criteria=criteria,
-                                   title=p["title"], abstract=p["abstract"])
-        data, stats = llm.ask_json(LLM_SYSTEM, prompt, config.LLM_MAX_TOKENS_SCORE,
-                                   valid_llm_score)
-        score = (data["score"] - 1) / 4 if data else None   # NULL after two bad replies
-        rationale = data.get("rationale") if data else None
+        score, rationale, stats = judge(topic, criteria, p)
         db.save_score(conn, p["paper_id"], topic, "llm", score, rationale, **stats)
         conn.commit()
 
