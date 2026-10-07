@@ -72,6 +72,16 @@ Also worth reading: scorer-vs-scorer Spearman correlation (`evaluate.py:153-163`
 | Preset (semantic) layout | Placing x = year and y = log citations makes position *mean* something, as in Litmaps. A force layout would place nodes arbitrarily. Log scale stops one landmark paper from flattening the rest. | `graph.py:96-107` |
 | Safe data inlining | Escaping `</` stops a paper title containing `</script>` from breaking the page. | `graph.py:243` |
 
+## 8. `pipeline.py`, `app.py`, and `templates/app.html`: the search UI
+
+| Concept | Why it matters here | Where |
+|---|---|---|
+| Scoring cascade | Free local models screen all 100 candidates, and only the top 30 reach the paid LLM. This keeps the LLM's accuracy where it matters at a fraction of the cost (the trade-off `evaluate.py` measures). | `pipeline.py:305`, `pipeline.py:86-89` |
+| Bi-encoder embeddings + k-means + silhouette | Clustering needs one vector per paper, which is exactly what a bi-encoder gives (a cross-encoder only scores pairs). Silhouette picks the number of topics that separates them most cleanly. | `pipeline.py:151-183`, `pipeline.py:213-250` |
+| Background job + polling | The search takes a minute, so the server runs it in a thread and the page asks "how far along?" three times a second. That's simpler than WebSockets, with the standard library only. | `app.py:35-53`, `templates/app.html:500` |
+| Progress as stage spans | Each stage owns a slice of 0-100%, so progress inside a stage maps to the bar and never moves backward. The browser then eases the displayed number toward the real one. | `pipeline.py:28`, `pipeline.py:51-53`, `templates/app.html:560-567` |
+| Grounded synthesis | The review is written from the structured extractions, not the raw papers, and every claim must cite [n]. The UI turns citations into links so you can check them. | `pipeline.py:114-145`, `templates/app.html:633-641` |
+
 ---
 
 ## Exercises (each one requires changing code)
@@ -91,7 +101,9 @@ Also worth reading: scorer-vs-scorer Spearman correlation (`evaluate.py:153-163`
 4. **Cost-aware cascade.** Write a `cascade` scorer: run BGE on everything, send only
    the middle band (say 0.2-0.8) to the LLM, and keep BGE's score elsewhere. Add it to
    the report with its real cost per 1,000 papers.
-5. **Co-citation edges.** Bibliographic coupling looks backward (shared references).
+5. **Stream the review.** In `pipeline.py`, switch `write_review` to the streaming API and
+   show the review appearing section by section in the UI instead of waiting for all of it.
+6. **Co-citation edges.** Bibliographic coupling looks backward (shared references).
    Add `co_citation` edges (two papers cited together by the same later paper) using
    `/paper/{id}/citations` in `fetch.py`, draw them as a third toggle in
    `templates/graph.html`, and compare which communities each edge type produces.
