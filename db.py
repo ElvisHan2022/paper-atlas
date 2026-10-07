@@ -40,8 +40,11 @@ def connect(path=None):
     path = path or config.DB_PATH
     if str(path) != ":memory:":
         config.DATA_DIR.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    # timeout: wait up to 30 s for another writer instead of failing with "database is locked".
+    conn = sqlite3.connect(path, timeout=30)
     conn.row_factory = sqlite3.Row  # rows behave like dicts: row["title"]
+    if str(path) != ":memory:":
+        conn.execute("PRAGMA journal_mode=WAL")  # readers no longer block the writer
     init_schema(conn)
     return conn
 

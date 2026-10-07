@@ -4,6 +4,7 @@ app.py runs `run(query, report)` in a background thread. `report(stage, fraction
 is how this file tells the browser how far along it is.
 """
 import json
+import sqlite3
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -303,6 +304,13 @@ def run(query, report=lambda stage, fraction, message: None, source_names=None,
         lens_key="balanced"):
     try:
         return _run(query, report, source_names, lens_key)
+    except sqlite3.OperationalError as e:
+        if "locked" in str(e):
+            raise PipelineError(
+                f"The results database ({config.DB_PATH}) is busy. Close any program that has it "
+                "open (such as DB Browser for SQLite), wait for other searches to finish, and "
+                "try again.") from e
+        raise
     except Exception as e:
         if type(e).__module__.startswith("anthropic") and hasattr(e, "status_code"):
             raise PipelineError(api_error_message(e)) from e
@@ -361,7 +369,7 @@ def _run(query, report, source_names, lens_key):
         for p, (s, ms) in zip(candidates, results):
             p.setdefault("scores", {})[scorer] = s
             db.save_score(conn, p["paper_id"], query, scorer, s, latency_ms=ms, cost_usd=0.0)
-    conn.commit()
+        conn.commit()  # commit before the next model runs, so the database is never held open
     for p in candidates:
         p["ce_mean"] = (p["scores"]["minilm"] + p["scores"]["bge"]) / 2
         p["scores"]["llm"] = p["scores"]["lens"] = None
