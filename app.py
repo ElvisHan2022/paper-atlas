@@ -7,7 +7,6 @@ a second for progress. The pipeline runs in a background thread, so the page sta
 """
 import argparse
 import json
-import os
 import threading
 import traceback
 import uuid
@@ -16,6 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote
 
 import config
+import llm
 import pipeline
 
 PAGE = config.ROOT / "templates" / "app.html"
@@ -101,7 +101,9 @@ class Handler(BaseHTTPRequestHandler):
                 "sources": config.SOURCES,
                 "lenses": {k: {"label": v["label"], "summary": v["summary"]}
                            for k, v in config.LENSES.items()},
-                "has_llm": bool(os.getenv("ANTHROPIC_API_KEY")),
+                "has_llm": llm.has_key(),
+                "key_status": llm.KEY_STATUS,
+                "key_hint": llm.masked_key(),
             })
         elif self.path == "/api/runs":
             self.send_json(recent_runs())
@@ -137,10 +139,26 @@ class Handler(BaseHTTPRequestHandler):
         pass  # polling would flood the terminal
 
 
+def report_key():
+    """Check the API key once at startup and say plainly what's wrong, if anything."""
+    status = llm.check_key()
+    messages = {
+        "ok": f"Anthropic API key: OK ({llm.masked_key()})",
+        "missing": ("Anthropic API key: not found. Put ANTHROPIC_API_KEY=sk-ant-... in the .env "
+                    f"file in {config.ROOT}. Searches will use the local models only."),
+        "rejected": (f"Anthropic API key: REJECTED ({llm.masked_key()}). Make a new key at "
+                     "console.anthropic.com, paste it into .env, and restart. Searches will use "
+                     "the local models only until then."),
+        "unreachable": "Anthropic API key: couldn't check it (no connection?). Will try anyway.",
+    }
+    print(messages[status])
+
+
 def main(host, port, open_browser):
     server = ThreadingHTTPServer((host, port), Handler)
     url = f"http://{host}:{port}"
     print(f"paper-atlas is running at {url}  (Ctrl+C to stop)")
+    threading.Thread(target=report_key, daemon=True).start()
     if open_browser:
         webbrowser.open(url)
     try:

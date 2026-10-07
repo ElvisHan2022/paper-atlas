@@ -521,7 +521,10 @@ async function loadOptions() {
   state.lens = o.lenses[store.get("lens", "balanced")] ? store.get("lens", "balanced") : "balanced";
   const saved = store.get("sources", Object.keys(o.sources)).filter(s => o.sources[s]);
   state.sources = saved.length ? saved : Object.keys(o.sources);
-  $("#key-notice").hidden = o.has_llm;
+  showKeyNotice(o);
+  if (o.key_status === "unchecked") setTimeout(async () => {  // the server checks the key at startup
+    try { const again = await (await fetch("/api/options")).json(); state.options = again; showKeyNotice(again); } catch {}
+  }, 2500);
   $("#lens-menu").innerHTML = Object.entries(o.lenses).map(([k, v]) =>
     `<li role="none"><button type="button" role="menuitemradio" data-lens="${esc(k)}" aria-checked="${k === state.lens}">
        <svg class="tick" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -529,6 +532,17 @@ async function loadOptions() {
   $("#lens-label").textContent = o.lenses[state.lens].label;
   $("#source-toggles").innerHTML = Object.entries(o.sources).map(([k, label]) =>
     `<button type="button" class="ctl toggle" data-source="${esc(k)}" aria-pressed="${state.sources.includes(k)}">${esc(label)}</button>`).join("");
+}
+function showKeyNotice(o) {
+  const n = $("#key-notice");
+  if (o.key_status === "rejected") {
+    n.innerHTML = `<b>Anthropic rejected the API key in .env</b> (${esc(o.key_hint)}). Make a new key at
+      console.anthropic.com, paste it after <code>ANTHROPIC_API_KEY=</code> in <code>.env</code>, and restart
+      <code>python app.py</code>. Until then, searches use the local models only.`;
+    n.hidden = false;
+  } else {
+    n.hidden = o.has_llm;
+  }
 }
 function setLensMenu(open) {
   $("#lens-menu").hidden = !open;

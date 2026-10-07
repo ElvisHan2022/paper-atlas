@@ -211,3 +211,37 @@ def test_venue_and_evidence_tags():
     assert evidence_tags(["Journal Article", "Multicenter Study", "Randomized Controlled Trial"]) \
         == ["RCT", "Multicenter"]
     assert evidence_tags(["MetaAnalysis", "Review"]) == ["Meta-analysis", "Review"]
+
+
+# ---- API key handling ----
+
+@pytest.mark.parametrize("raw, expected", [
+    ("sk-ant-api03-abcdefghijklmnopqrstuvwxyz", "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"),
+    ('  "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"  ', "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"),
+    ("'sk-ant-api03-abcdefghijklmnopqrstuvwxyz'", "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"),
+    ("sk-ant-...", None),          # the placeholder from .env.example
+    ("", None),
+])
+def test_api_key_is_cleaned(monkeypatch, raw, expected):
+    import llm
+    monkeypatch.setenv("ANTHROPIC_API_KEY", raw)
+    assert llm.api_key() == expected
+    if expected:
+        assert llm.masked_key().startswith("sk-ant-api03") and llm.masked_key().endswith("wxyz")
+
+
+def test_rejected_key_falls_back_to_local_mode(monkeypatch):
+    import types
+    import llm
+
+    class Rejected(Exception):
+        status_code = 401
+
+    def refuse(**kwargs):
+        raise Rejected("invalid x-api-key")
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-api03-abcdefghijklmnopqrstuvwxyz")
+    monkeypatch.setattr(llm, "_client", types.SimpleNamespace(models=types.SimpleNamespace(list=refuse)))
+    monkeypatch.setattr(llm, "KEY_STATUS", "unchecked")
+    assert llm.check_key() == "rejected"
+    assert not llm.has_key()          # searches run with the local models instead of failing

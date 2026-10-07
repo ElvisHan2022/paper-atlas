@@ -4,7 +4,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent
-load_dotenv(ROOT / ".env")
+# override=True: the project's .env wins over an old key set elsewhere in Windows/macOS.
+load_dotenv(ROOT / ".env", override=True)
 
 # ---- paths ----
 DATA_DIR = ROOT / "data"

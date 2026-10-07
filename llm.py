@@ -4,12 +4,47 @@ Both steps want the same thing: send a prompt, get JSON back, check its shape, r
 once if it is broken, and record tokens, latency, and dollars.
 """
 import json
+import os
 import re
 import time
 
 import config
 
 _client = None
+KEY_STATUS = "unchecked"   # set by check_key(): ok, rejected, missing, unreachable
+
+
+def api_key():
+    """ANTHROPIC_API_KEY from .env, forgiving stray quotes and spaces; None if unusable."""
+    key = (os.getenv("ANTHROPIC_API_KEY") or "").strip().strip('"').strip("'").strip()
+    if not key or key.endswith("...") or key in ("sk-ant-", "your-key-here"):
+        return None   # missing, or still the placeholder from .env.example
+    return key
+
+
+def masked_key():
+    key = api_key()
+    return f"{key[:12]}…{key[-4:]}" if key and len(key) > 20 else ("(set)" if key else "(none)")
+
+
+def has_key():
+    """True when there's a key worth trying (not known to be rejected)."""
+    return api_key() is not None and KEY_STATUS != "rejected"
+
+
+def check_key():
+    """One free call (list models) to find out whether Anthropic accepts the key."""
+    global KEY_STATUS
+    if api_key() is None:
+        KEY_STATUS = "missing"
+        return KEY_STATUS
+    try:
+        client().models.list(limit=1)
+        KEY_STATUS = "ok"
+    except Exception as e:
+        status = getattr(e, "status_code", None)
+        KEY_STATUS = "rejected" if status in (401, 403) else "unreachable"
+    return KEY_STATUS
 
 
 def client():
@@ -17,7 +52,7 @@ def client():
     global _client
     if _client is None:
         import anthropic  # imported here so tests run without the package configured
-        _client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
+        _client = anthropic.Anthropic(api_key=api_key())
     return _client
 
 

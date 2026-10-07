@@ -4,7 +4,6 @@ app.py runs `run(query, report)` in a background thread. `report(stage, fraction
 is how this file tells the browser how far along it is.
 """
 import json
-import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -318,7 +317,7 @@ def _run(query, report, source_names, lens_key):
     if not source_names:
         raise PipelineError("Pick at least one source to search.")
     lens = config.LENSES.get(lens_key) or config.LENSES["balanced"]
-    has_llm = bool(os.getenv("ANTHROPIC_API_KEY"))
+    has_llm = llm.has_key()
     cost = 0.0
 
     # 1) Processing your query
