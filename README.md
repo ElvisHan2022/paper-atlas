@@ -20,7 +20,7 @@ python app.py
 
 This opens http://127.0.0.1:8000. Type a topic or a few keywords. Under the search bar you can pick:
 
-- **Sources:** PubMed, Semantic Scholar, and arXiv. Papers found in more than one are merged by DOI or title.
+- **Sources:** PubMed, OpenAlex (an open index of essentially every journal: Nature, Nature Medicine, Cell, NEJM…), Semantic Scholar, and arXiv. Papers found in more than one are merged by DOI or title.
 - **Evidence lens:** different journals reward different work, so the lens tells the LLM judge what to value on top of relevance:
   - **Balanced:** relevance only.
   - **Clinical impact:** trials, external validation, deployment and patient outcomes (NEJM, Lancet, JAMA, Nature Medicine).
@@ -30,7 +30,7 @@ This opens http://127.0.0.1:8000. Type a topic or a few keywords. Under the sear
 The search then runs in four stages:
 
 1. **Processing your query.** Claude restates it as a topic and writes relevance criteria.
-2. **Identifying candidate papers.** It searches the chosen sources (about 100 + 60 + 30 hits) and merges duplicates.
+2. **Identifying candidate papers.** It searches the chosen sources (up to 80 + 80 + 60 + 25 hits) and merges duplicates.
 3. **Scoring the papers.** MiniLM and BGE score every candidate locally; the top 30 go to the LLM judge, which scores relevance (1-5) and, with a lens, lens fit (1-5). The final rank is 60% relevance + 40% lens fit.
 4. **Finishing scoring.** It extracts the top 10, writes the review, and groups all candidates into topics.
 
@@ -41,6 +41,8 @@ Results open in four tabs:
 - **Scoring rubric:** how the papers were ranked.
 
 Finished searches are saved in `outputs/runs/` and listed under "Recent searches". A search costs a few cents with Haiku.
+
+**Where the key goes:** in a file named `.env` in the `paper-atlas` folder on your computer, next to `app.py` (never in GitHub). When `python app.py` starts, it prints the exact path it reads and whether Anthropic accepted the key.
 
 **No API key?** The app still works. It ranks papers with the local models and builds the topic chart. The LLM judge, the lens and the review need `ANTHROPIC_API_KEY` in `.env`.
 
