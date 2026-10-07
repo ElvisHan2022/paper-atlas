@@ -117,14 +117,14 @@ def pick_papers(conn, topic, top):
     return papers[:top]
 
 
-def extract_one(p):
+def extract_one(p, cache=False):
     text, kind = source_text(p)
     note = ("\nNote: only the abstract is available, so most evidence will be "
             "'not found'.\n" if kind == "abstract_only" else "")
     prompt = PROMPT.format(schema=json.dumps(SCHEMA, indent=2), note=note,
                            title=p["title"], text=text)
     data, stats = llm.ask_json(SYSTEM, prompt, config.LLM_MAX_TOKENS_EXTRACT,
-                               validate_extraction)
+                               validate_extraction, cache=cache)
     return data, kind, stats
 
 

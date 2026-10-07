@@ -286,3 +286,28 @@ def test_search_all_runs_sources_in_parallel(monkeypatch):
     merged, counts, errors = sources.search_all("q", ["a", "b", "c"], {"a": 5, "b": 5, "c": 5})
     assert time.perf_counter() - start < 0.7          # ~0.4 s in parallel, not 0.8 s in a row
     assert counts == {"a": 1, "b": 1} and "403" in errors["c"] and len(merged) == 2
+
+
+def test_llm_cache_reuses_valid_answers(monkeypatch, tmp_path):
+    import types
+    import config
+    import llm
+    calls = []
+
+    def create(**kw):
+        calls.append(kw)
+        reply = '{"score": 4}' if len(calls) > 1 else "not json"   # first reply is broken
+        return types.SimpleNamespace(content=[types.SimpleNamespace(type="text", text=reply)],
+                                     usage=types.SimpleNamespace(input_tokens=10, output_tokens=5))
+
+    monkeypatch.setattr(config, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(llm, "_client", types.SimpleNamespace(messages=types.SimpleNamespace(create=create)))
+    ok = lambda d: isinstance(d.get("score"), int)
+    first, stats1 = llm.ask_json("sys", "user", 50, ok, cache=True)
+    second, stats2 = llm.ask_json("sys", "user", 50, ok, cache=True)
+    assert first == second == {"score": 4}
+    assert len(calls) == 2                       # retry once, then served from cache
+    assert stats1["cost_usd"] > 0 and not stats1["cached"]
+    assert stats2["cached"] and stats2["cost_usd"] == 0
+    llm.ask_json("sys", "different user", 50, ok, cache=True)
+    assert len(calls) == 3                       # a different request is not a cache hit

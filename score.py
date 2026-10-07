@@ -132,7 +132,7 @@ def valid_lens_score(data):
         and 1 <= data["lens_score"] <= 5
 
 
-def judge(topic, criteria, p, lens=None):
+def judge(topic, criteria, p, lens=None, cache=False):
     """LLM judge for one paper: (score, rationale, stats, lens_score).
 
     Rubric scores 1-5 are normalized as (score - 1) / 4. Scores are None after two bad
@@ -149,7 +149,8 @@ def judge(topic, criteria, p, lens=None):
         prompt = LLM_PROMPT.format(topic=topic, criteria=criteria,
                                    title=p["title"], abstract=p["abstract"])
         validate = valid_llm_score
-    data, stats = llm.ask_json(LLM_SYSTEM, prompt, config.LLM_MAX_TOKENS_SCORE, validate)
+    data, stats = llm.ask_json(LLM_SYSTEM, prompt, config.LLM_MAX_TOKENS_SCORE, validate,
+                               cache=cache)
     if not data:
         return None, None, stats, None
     lens_score = (data["lens_score"] - 1) / 4 if "lens_score" in data and lens else None
