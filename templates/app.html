@@ -537,11 +537,14 @@ function showKeyNotice(o) {
   const n = $("#key-notice");
   if (o.key_status === "rejected") {
     n.innerHTML = `<b>Anthropic rejected the API key in .env</b> (${esc(o.key_hint)}). Make a new key at
-      console.anthropic.com, paste it after <code>ANTHROPIC_API_KEY=</code> in <code>.env</code>, and restart
+      console.anthropic.com, paste it after <code>ANTHROPIC_API_KEY=</code> in <code>${esc(o.env_path || ".env")}</code>, and restart
       <code>python app.py</code>. Until then, searches use the local models only.`;
     n.hidden = false;
   } else {
     n.hidden = o.has_llm;
+    if (!o.has_llm && o.env_path) n.innerHTML = `<b>No API key found.</b> Searches will rank papers with the local
+      models only, with no LLM judge and no review. Add <code>ANTHROPIC_API_KEY=&lt;your key&gt;</code> to
+      <code>${esc(o.env_path)}</code> and restart <code>python app.py</code>.`;
   }
 }
 function setLensMenu(open) {

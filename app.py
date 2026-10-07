@@ -104,6 +104,7 @@ class Handler(BaseHTTPRequestHandler):
                 "has_llm": llm.has_key(),
                 "key_status": llm.KEY_STATUS,
                 "key_hint": llm.masked_key(),
+                "env_path": str(config.ROOT / ".env"),
             })
         elif self.path == "/api/runs":
             self.send_json(recent_runs())
@@ -141,13 +142,20 @@ class Handler(BaseHTTPRequestHandler):
 
 def report_key():
     """Check the API key once at startup and say plainly what's wrong, if anything."""
+    env = config.ROOT / ".env"
+    if env.exists():
+        print(f".env file: {env}")
+    else:
+        wrong = [f.name for f in config.ROOT.glob(".env*") if f.name != ".env.example"]
+        print(f".env file: NOT FOUND. Expected it at {env}"
+              + (f" (found {', '.join(wrong)} instead; rename it to .env)" if wrong else ""))
     status = llm.check_key()
     messages = {
         "ok": f"Anthropic API key: OK ({llm.masked_key()})",
-        "missing": ("Anthropic API key: not found. Put ANTHROPIC_API_KEY=sk-ant-... in the .env "
-                    f"file in {config.ROOT}. Searches will use the local models only."),
+        "missing": (f"Anthropic API key: not found. Add a line ANTHROPIC_API_KEY=<your key> to {env}. "
+                    "Searches will use the local models only."),
         "rejected": (f"Anthropic API key: REJECTED ({llm.masked_key()}). Make a new key at "
-                     "console.anthropic.com, paste it into .env, and restart. Searches will use "
+                     f"console.anthropic.com, paste it into {env}, and restart. Searches will use "
                      "the local models only until then."),
         "unreachable": "Anthropic API key: couldn't check it (no connection?). Will try anyway.",
     }
