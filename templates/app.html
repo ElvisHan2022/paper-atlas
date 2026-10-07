@@ -127,6 +127,7 @@
   .loader .pct { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums;
                  letter-spacing: -.02em; }
   .loader .pct small { font-size: 15px; color: var(--muted); font-weight: 500; }
+  .loader.stopped .spin, .loader.finished .spin { display: none; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .stages { list-style: none; padding: 0; margin: 0; border: 1px solid var(--border);
             border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
@@ -491,6 +492,7 @@ async function startSearch(text) {
   $("#run-query").textContent = query;
   $("#run-sub").textContent = "Starting…";
   $("#run-error").hidden = true;
+  $("#loader").classList.remove("stopped", "finished");
   renderStages(["Processing your query", "Identifying candidate papers", "Scoring the papers", "Finishing scoring"], 0, "running", "");
   setPercent(0, true);
   show("progress");
@@ -513,9 +515,12 @@ async function poll() {
     clearInterval(state.timer);
     $("#run-error-text").textContent = job.error;
     $("#run-error").hidden = false;
+    $("#loader").classList.add("stopped");
+    $("#run-error").scrollIntoView({ behavior: "smooth", block: "center" });
   } else if (job.status === "done") {
     clearInterval(state.timer);
     state.target = 100;
+    $("#loader").classList.add("finished");
     setTimeout(() => renderResults(job.result), 900);  // let the last check mark land
   }
 }
