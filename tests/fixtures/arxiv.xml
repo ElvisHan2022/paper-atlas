@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <title type="html">ArXiv Query: search_query=all:sepsis</title>
+  <opensearch:totalResults>2</opensearch:totalResults>
+  <entry>
+    <id>http://arxiv.org/abs/2401.01234v2</id>
+    <updated>2024-02-01T00:00:00Z</updated>
+    <published>2024-01-03T18:00:00Z</published>
+    <title>A Benchmark for
+      Clinical Reasoning in LLMs</title>
+    <summary>  We introduce a benchmark of 5,000 clinical vignettes.
+    </summary>
+    <author><name>Lee Chen</name></author>
+    <author><name>Sam Okafor</name></author>
+    <arxiv:doi>10.1056/NEJMoa0000001</arxiv:doi>
+    <link href="http://arxiv.org/abs/2401.01234v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2401.01234v2" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2312.05555v1</id>
+    <published>2023-12-09T10:00:00Z</published>
+    <title>Robustness of Medical LLMs to Typos</title>
+    <summary>Small perturbations change answers.</summary>
+    <author><name>Kim Park</name></author>
+    <arxiv:journal_ref>ML4H 2023</arxiv:journal_ref>
+  </entry>
+</feed>

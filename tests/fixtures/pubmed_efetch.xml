@@ -1,0 +1,58 @@
+<?xml version="1.0" ?>
+<!DOCTYPE PubmedArticleSet PUBLIC "-//NLM//DTD PubMedArticle, 1st January 2024//EN" "https://dtd.nlm.nih.gov/ncbi/pubmed/out/pubmed_240101.dtd">
+<PubmedArticleSet>
+<PubmedArticle>
+  <MedlineCitation Status="MEDLINE" Owner="NLM">
+    <PMID Version="1">11111111</PMID>
+    <Article PubModel="Print-Electronic">
+      <Journal>
+        <ISSN IssnType="Electronic">1533-4406</ISSN>
+        <JournalIssue CitedMedium="Internet">
+          <Volume>390</Volume><Issue>4</Issue>
+          <PubDate><Year>2024</Year><Month>Jan</Month><Day>25</Day></PubDate>
+        </JournalIssue>
+        <Title>The New England journal of medicine</Title>
+        <ISOAbbreviation>N Engl J Med</ISOAbbreviation>
+      </Journal>
+      <ArticleTitle>A randomized trial of an <i>AI</i> sepsis alert in emergency departments.</ArticleTitle>
+      <Abstract>
+        <AbstractText Label="BACKGROUND" NlmCategory="BACKGROUND">Sepsis alerts are common.</AbstractText>
+        <AbstractText Label="METHODS" NlmCategory="METHODS">We randomized 12 sites.</AbstractText>
+      </Abstract>
+      <AuthorList CompleteYN="Y">
+        <Author ValidYN="Y"><LastName>Rivera</LastName><ForeName>Ana</ForeName><Initials>A</Initials></Author>
+        <Author ValidYN="Y"><CollectiveName>SEPSIS-AI Investigators</CollectiveName></Author>
+      </AuthorList>
+      <PublicationTypeList>
+        <PublicationType UI="D016449">Randomized Controlled Trial</PublicationType>
+        <PublicationType UI="D016448">Multicenter Study</PublicationType>
+      </PublicationTypeList>
+    </Article>
+  </MedlineCitation>
+  <PubmedData>
+    <ArticleIdList>
+      <ArticleId IdType="pubmed">11111111</ArticleId>
+      <ArticleId IdType="doi">10.1056/NEJMoa0000001</ArticleId>
+      <ArticleId IdType="pmc">PMC9999999</ArticleId>
+    </ArticleIdList>
+  </PubmedData>
+</PubmedArticle>
+<PubmedArticle>
+  <MedlineCitation Status="PubMed-not-MEDLINE" Owner="NLM">
+    <PMID Version="1">22222222</PMID>
+    <Article PubModel="Electronic">
+      <Journal>
+        <JournalIssue CitedMedium="Internet">
+          <PubDate><MedlineDate>2023 Nov-Dec</MedlineDate></PubDate>
+        </JournalIssue>
+        <Title>Journal of the American Medical Informatics Association : JAMIA</Title>
+        <ISOAbbreviation>J Am Med Inform Assoc</ISOAbbreviation>
+      </Journal>
+      <ArticleTitle>Evaluating large language models on discharge summaries</ArticleTitle>
+      <Abstract><AbstractText>We compared three LLMs against clinicians.</AbstractText></Abstract>
+      <PublicationTypeList><PublicationType UI="D016428">Journal Article</PublicationType></PublicationTypeList>
+    </Article>
+  </MedlineCitation>
+  <PubmedData><ArticleIdList><ArticleId IdType="pubmed">22222222</ArticleId></ArticleIdList></PubmedData>
+</PubmedArticle>
+</PubmedArticleSet>

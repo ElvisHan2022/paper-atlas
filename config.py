@@ -18,7 +18,8 @@ GRAPH_TEMPLATE = ROOT / "templates" / "graph.html"
 
 # ---- Semantic Scholar ----
 S2_BASE = "https://api.semanticscholar.org/graph/v1"
-S2_FIELDS = "paperId,title,abstract,year,venue,citationCount,externalIds,openAccessPdf,authors"
+S2_FIELDS = ("paperId,title,abstract,year,venue,citationCount,externalIds,openAccessPdf,"
+             "authors,publicationTypes")
 S2_PAGE_SIZE = 100          # max allowed by /paper/search
 S2_SECONDS_PER_REQUEST = 1.0  # polite limit without a key
 S2_SECONDS_WITH_KEY = 0.2
@@ -57,7 +58,6 @@ RANDOM_SEED = 42
 # ---- web app (app.py / pipeline.py) ----
 WEB_HOST = "127.0.0.1"
 WEB_PORT = 8000
-WEB_CANDIDATES = 100        # papers pulled per search (one Semantic Scholar page)
 WEB_LLM_SHORTLIST = 30      # only the top cross-encoder hits go to the LLM judge
 WEB_TOP_N = 10              # papers shown, extracted, and reviewed
 WEB_WORKERS = 6             # parallel LLM calls
@@ -66,6 +66,56 @@ LLM_MAX_TOKENS_REVIEW = 4000
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"  # bi-encoder for topic clusters
 CLUSTER_K_RANGE = (2, 5)    # try this many topic clusters, keep the best silhouette
 RUNS_DIR = OUTPUT_DIR / "runs"
+
+# Where to search, and how many hits to take from each before merging duplicates.
+SOURCES = {"pubmed": "PubMed", "semantic_scholar": "Semantic Scholar", "arxiv": "arXiv"}
+SOURCE_LIMITS = {"semantic_scholar": 100, "pubmed": 60, "arxiv": 30}
+
+# Venue families, matched as whole words against the lowercase venue name (first match wins).
+VENUE_TYPES = [
+    ("Preprint", ["arxiv", "medrxiv", "biorxiv", "ssrn", "research square"]),
+    ("Clinical journal", [
+        "n engl j med", "new england journal of medicine", "nejm ai", "lancet", "jama",
+        "bmj", "ann intern med", "annals of internal medicine", "nat med", "nature medicine",
+        "plos med", "circulation", "j clin oncol", "crit care med", "chest", "radiology",
+        "mayo clin proc", "jama netw open"]),
+    ("Informatics journal", [
+        "j am med inform assoc", "jamia", "journal of the american medical informatics association",
+        "j biomed inform", "journal of biomedical informatics", "npj digit med",
+        "npj digital medicine", "jmir", "j med internet res", "bmc med inform decis mak",
+        "int j med inform", "international journal of medical informatics",
+        "artif intell med", "artificial intelligence in medicine", "appl clin inform",
+        "ieee j biomed health inform", "amia"]),
+    ("ML / AI venue", [
+        "neurips", "neural information processing systems", "icml", "iclr", "aaai", "ijcai",
+        "acl", "emnlp", "naacl", "coling", "findings", "ml4h", "machine learning for health",
+        "chil", "mlhc", "kdd", "nat mach intell", "nature machine intelligence", "tmlr",
+        "jmlr", "cvpr", "miccai"]),
+]
+
+# Evidence lenses: different journals reward different kinds of work. The lens tells the
+# LLM judge what to value on top of topical relevance, and gets its own 1-5 score.
+LENSES = {
+    "balanced": {"label": "Balanced", "summary": "Rank by relevance alone", "criteria": None},
+    "clinical": {
+        "label": "Clinical impact", "summary": "Deployment, trials, patient outcomes",
+        "criteria": ("Favor evidence that changes care: prospective or randomized studies, external "
+                     "or multi-site validation, real-world deployment, workflow integration, and "
+                     "patient or clinician outcomes. This is what NEJM, Lancet, JAMA, Nature "
+                     "Medicine and NEJM AI reward.")},
+    "methods": {
+        "label": "Methods rigor", "summary": "Strong evaluation design",
+        "criteria": ("Favor careful evaluation: clear reference standards, strong baselines, "
+                     "appropriate metrics with uncertainty, external or temporal validation, "
+                     "subgroup and bias analysis, calibration, and shared code or data. This is "
+                     "what JAMIA, npj Digital Medicine and JBI reward.")},
+    "novelty": {
+        "label": "Novelty", "summary": "New methods, models, benchmarks",
+        "criteria": ("Favor new methods, models, benchmarks or datasets that clearly move the "
+                     "state of the art, with convincing comparisons to prior work. This is what "
+                     "NeurIPS, ICML, ICLR, ACL, ML4H and CHIL reward.")},
+}
+LENS_WEIGHT = 0.4            # final LLM score = 0.6 * relevance + 0.4 * lens fit
 
 # ---- demo topic ----
 DEMO_TOPIC = "LLM evaluation and reliability for clinical and health text"

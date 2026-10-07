@@ -148,3 +148,66 @@ def test_clusters_find_obvious_groups():
     texts = ["sepsis prediction icu"] * 10 + ["radiology report generation"] * 10
     names = keyword_names(texts, labels)
     assert len(names) == 2 and names[0] != names[1]
+
+
+# ---- sources (fixtures copy the documented PubMed and arXiv response formats) ----
+
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+
+
+def test_parse_pubmed():
+    from sources import parse_pubmed
+    a, b = parse_pubmed((FIXTURES / "pubmed_efetch.xml").read_text(encoding="utf-8"))
+    assert a["paperId"] == "PMID:11111111" and a["year"] == 2024
+    assert a["title"] == "A randomized trial of an AI sepsis alert in emergency departments"
+    assert a["abstract"].startswith("Background: Sepsis alerts are common. Methods:")
+    assert a["venue"] == "N Engl J Med"
+    assert a["externalIds"]["DOI"] == "10.1056/NEJMoa0000001"
+    assert a["openAccessPdf"]["url"].endswith("PMC9999999?pdf=render")
+    assert [x["name"] for x in a["authors"]] == ["Ana Rivera", "SEPSIS-AI Investigators"]
+    assert "Randomized Controlled Trial" in a["publicationTypes"]
+    assert b["year"] == 2023 and b["openAccessPdf"] is None   # MedlineDate, no PMC copy
+
+
+def test_parse_arxiv():
+    from sources import parse_arxiv
+    a, b = parse_arxiv((FIXTURES / "arxiv.xml").read_text(encoding="utf-8"))
+    assert a["paperId"] == "ARXIV:2401.01234"                   # version suffix dropped
+    assert a["title"] == "A Benchmark for Clinical Reasoning in LLMs"
+    assert a["year"] == 2024 and a["venue"] == "arXiv"
+    assert a["openAccessPdf"]["url"] == "https://arxiv.org/pdf/2401.01234"
+    assert b["venue"] == "ML4H 2023" and b["externalIds"]["DOI"] is None
+
+
+def test_merge_dedupes_by_doi_and_fills_gaps():
+    from sources import merge, parse_arxiv, parse_pubmed
+    pubmed = parse_pubmed((FIXTURES / "pubmed_efetch.xml").read_text(encoding="utf-8"))
+    arxiv = parse_arxiv((FIXTURES / "arxiv.xml").read_text(encoding="utf-8"))
+    s2 = [{"paperId": "abc", "title": "Evaluating Large Language Models on Discharge Summaries",
+           "abstract": None, "year": 2023, "venue": "", "citationCount": 12,
+           "externalIds": {}, "publicationTypes": ["JournalArticle"], "source": "semantic_scholar"},
+          {"paperId": "def", "title": "Evaluating large language models on discharge summaries!",
+           "abstract": "Has an abstract.", "year": 2023, "venue": "JAMIA", "citationCount": 12,
+           "externalIds": {}, "publicationTypes": [], "source": "semantic_scholar"}]
+    merged = merge({"semantic_scholar": s2, "pubmed": pubmed, "arxiv": arxiv})
+    # The NEJM trial appears on PubMed and arXiv with the same DOI -> one record.
+    trial = [p for p in merged if (p["externalIds"].get("DOI") or "").startswith("10.1056")]
+    assert len(trial) == 1 and trial[0]["sources"] == ["pubmed", "arxiv"]
+    # Same title (case and punctuation aside) -> one record that keeps S2's citation count.
+    summaries = [p for p in merged if "discharge" in p["title"].lower()]
+    assert len(summaries) == 1 and summaries[0]["citationCount"] == 12
+    assert summaries[0]["sources"] == ["semantic_scholar", "pubmed"]
+    assert len(merged) == 3
+
+
+def test_venue_and_evidence_tags():
+    from sources import evidence_tags, venue_type
+    assert venue_type("N Engl J Med") == "Clinical journal"
+    assert venue_type("J Am Med Inform Assoc") == "Informatics journal"
+    assert venue_type("NeurIPS 2023 Datasets and Benchmarks") == "ML / AI venue"
+    assert venue_type("arXiv", ["arxiv"]) == "Preprint"
+    assert venue_type("Manchester Medical Review") == "Journal"   # "chest" is not a whole word
+    assert venue_type("") == "Unknown venue"
+    assert evidence_tags(["Journal Article", "Multicenter Study", "Randomized Controlled Trial"]) \
+        == ["RCT", "Multicenter"]
+    assert evidence_tags(["MetaAnalysis", "Review"]) == ["Meta-analysis", "Review"]
