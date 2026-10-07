@@ -108,3 +108,43 @@ def test_stratified_order_draws_evenly():
     top = [scores[p] for p in order]
     assert top.count(1.0) == 5 and top.count(0.0) == 5
     assert stratified_order(ids, scores, 10) == order        # deterministic -> resumable
+
+
+# ---- web pipeline helpers ----
+
+def test_progress_percent_is_monotonic_across_stages():
+    from pipeline import STAGE_SPAN, overall_percent
+    points = [overall_percent(s, f) for s in range(len(STAGE_SPAN)) for f in (0, 0.5, 1)]
+    assert points == sorted(points)
+    assert points[0] == 0 and points[-1] == 100
+    assert overall_percent(2, 5.0) == overall_percent(2, 1.0)   # fractions are clamped
+
+
+def test_rank_key_puts_llm_score_first():
+    from pipeline import rank_key
+    judged = {"scores": {"llm": 0.75}, "ce_mean": 0.1}
+    unjudged = {"scores": {"llm": None}, "ce_mean": 0.99}
+    tie = {"scores": {"llm": 0.75}, "ce_mean": 0.5}
+    assert sorted([unjudged, judged, tie], key=rank_key, reverse=True) == [tie, judged, unjudged]
+
+
+def test_review_validator():
+    from pipeline import REVIEW_SECTIONS, valid_review
+    good = {"overview": "x", **{k: {"summary": "s [1]", "key_points": ["a"]} for k, _ in REVIEW_SECTIONS}}
+    assert valid_review(good)
+    bad = dict(good, methods={"summary": "s"})            # key_points missing
+    assert not valid_review(bad)
+    assert not valid_review({k: v for k, v in good.items() if k != "overview"})
+
+
+def test_clusters_find_obvious_groups():
+    from pipeline import choose_clusters, keyword_names
+    rng = np.random.default_rng(0)
+    vecs = np.vstack([rng.normal(0, .05, (10, 4)) + [1, 0, 0, 0],
+                      rng.normal(0, .05, (10, 4)) + [0, 1, 0, 0]])
+    labels = choose_clusters(vecs)
+    assert len(set(labels[:10])) == 1 and len(set(labels[10:])) == 1
+    assert labels[0] != labels[10]
+    texts = ["sepsis prediction icu"] * 10 + ["radiology report generation"] * 10
+    names = keyword_names(texts, labels)
+    assert len(names) == 2 and names[0] != names[1]
