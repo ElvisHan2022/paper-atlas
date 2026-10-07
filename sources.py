@@ -1,4 +1,4 @@
-"""Search PubMed and arXiv alongside Semantic Scholar, then merge the results.
+"""Search PubMed, OpenAlex and arXiv alongside Semantic Scholar, then merge the results.
 
 Every source is turned into the same shape Semantic Scholar uses (paperId, title, abstract,
 year, venue, citationCount, externalIds, openAccessPdf, authors), plus three extras:
@@ -7,6 +7,7 @@ where a paper came from.
 
 PubMed:  https://www.ncbi.nlm.nih.gov/books/NBK25501/  (E-utilities, free, ~3 requests/s)
 arXiv:   https://info.arxiv.org/help/api/user-manual.html  (Atom XML, 1 request per 3 s)
+OpenAlex: https://docs.openalex.org  (free, open index of ~250M works across all journals)
 """
 import os
 import re
@@ -131,6 +132,62 @@ def parse_arxiv(xml):
     return out
 
 
+# ---------------- OpenAlex (every journal) ----------------
+
+OPENALEX = "https://api.openalex.org/works"
+OPENALEX_FIELDS = ("id,doi,display_name,publication_year,type,cited_by_count,primary_location,"
+                   "best_oa_location,authorships,abstract_inverted_index")
+
+
+def openalex_search(query, n):
+    """Top-n OpenAlex works with abstracts. OpenAlex indexes ~250M works across journals."""
+    params = {"search": query, "filter": "has_abstract:true", "per-page": min(n, 200),
+              "select": OPENALEX_FIELDS}
+    if os.getenv("OPENALEX_EMAIL"):      # optional: joins OpenAlex's faster "polite pool"
+        params["mailto"] = os.getenv("OPENALEX_EMAIL")
+    if os.getenv("OPENALEX_API_KEY"):
+        params["api_key"] = os.getenv("OPENALEX_API_KEY")
+    data = fetch.cached_get(OPENALEX, params, "json", 0.2)
+    return parse_openalex(data or {})
+
+
+def rebuild_abstract(inverted):
+    """OpenAlex stores abstracts as {word: [positions]}; put the words back in order."""
+    if not inverted:
+        return None
+    slots = sorted((pos, word) for word, positions in inverted.items() for pos in positions)
+    return " ".join(word for _, word in slots)
+
+
+def parse_openalex(data):
+    out = []
+    for w in data.get("results") or []:
+        work_id = (w.get("id") or "").rsplit("/", 1)[-1]
+        if not work_id or not w.get("display_name"):
+            continue
+        source = (w.get("primary_location") or {}).get("source") or {}
+        pdf = (w.get("best_oa_location") or {}).get("pdf_url") or \
+            (w.get("primary_location") or {}).get("pdf_url")
+        doi = (w.get("doi") or "").replace("https://doi.org/", "") or None
+        kind = {"review": "Review", "preprint": "Preprint"}.get(w.get("type"))
+        out.append({
+            "paperId": f"OPENALEX:{work_id}",
+            "title": w["display_name"],
+            "abstract": rebuild_abstract(w.get("abstract_inverted_index")),
+            "year": w.get("publication_year"),
+            "venue": source.get("display_name") or "",
+            "citationCount": w.get("cited_by_count"),
+            "externalIds": {"DOI": doi, "OpenAlex": work_id},
+            "openAccessPdf": {"url": pdf} if pdf else None,
+            "authors": [{"name": (a.get("author") or {}).get("display_name")}
+                        for a in w.get("authorships") or [] if (a.get("author") or {}).get("display_name")],
+            "publicationTypes": [kind] if kind else [],
+            "source": "openalex",
+            "url": f"https://doi.org/{doi}" if doi else f"https://openalex.org/{work_id}",
+        })
+    return out
+
+
 # ---------------- Semantic Scholar + merging ----------------
 
 def s2_search(query, n):
@@ -142,7 +199,8 @@ def s2_search(query, n):
     return papers
 
 
-SEARCHERS = {"semantic_scholar": s2_search, "pubmed": pubmed_search, "arxiv": arxiv_search}
+SEARCHERS = {"semantic_scholar": s2_search, "openalex": openalex_search,
+             "pubmed": pubmed_search, "arxiv": arxiv_search}
 
 
 def dedupe_key(p):
@@ -154,11 +212,12 @@ def dedupe_key(p):
 def merge(results_by_source):
     """Combine lists from several sources, keeping one record per paper.
 
-    Semantic Scholar wins ties (it has citation counts); the others fill gaps like a
-    missing abstract, PDF link, or publication types. `sources` lists everywhere it was found.
+    Earlier sources win ties (Semantic Scholar and OpenAlex have citation counts); later
+    ones fill gaps like a missing abstract, PDF link, venue, or publication types.
+    `sources` lists everywhere the paper was found.
     """
     merged, order = {}, []
-    for source in ("semantic_scholar", "pubmed", "arxiv"):
+    for source in ("semantic_scholar", "openalex", "pubmed", "arxiv"):
         for p in results_by_source.get(source, []):
             if not p.get("title") or not p.get("abstract"):
                 continue
@@ -169,7 +228,7 @@ def merge(results_by_source):
                 continue
             base = merged[key]
             base["sources"].append(source)
-            for field in ("abstract", "year", "venue", "openAccessPdf"):
+            for field in ("abstract", "year", "venue", "openAccessPdf", "citationCount"):
                 if not base.get(field) and p.get(field):
                     base[field] = p[field]
             if base.get("venue") == "arXiv" and p.get("venue") not in (None, "", "arXiv"):

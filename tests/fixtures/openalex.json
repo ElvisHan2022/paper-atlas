@@ -1,0 +1,37 @@
+{
+  "meta": {"count": 2, "db_response_time_ms": 40, "page": 1, "per_page": 2},
+  "results": [
+    {
+      "id": "https://openalex.org/W4300000001",
+      "doi": "https://doi.org/10.1038/s41591-024-00001-1",
+      "display_name": "Prospective validation of a sepsis model across 12 hospitals",
+      "publication_year": 2024,
+      "type": "article",
+      "cited_by_count": 87,
+      "primary_location": {
+        "is_oa": true,
+        "landing_page_url": "https://www.nature.com/articles/s41591-024-00001-1",
+        "pdf_url": null,
+        "source": {"id": "https://openalex.org/S203256638", "display_name": "Nature Medicine", "type": "journal"}
+      },
+      "best_oa_location": {"pdf_url": "https://www.nature.com/articles/s41591-024-00001-1.pdf"},
+      "authorships": [
+        {"author_position": "first", "author": {"id": "https://openalex.org/A1", "display_name": "Mei Lin"}},
+        {"author_position": "last", "author": {"id": "https://openalex.org/A2", "display_name": "Omar Haddad"}}
+      ],
+      "abstract_inverted_index": {"We": [0], "validated": [1], "a": [2, 6], "sepsis": [3], "model": [4], "in": [5], "trial.": [7]}
+    },
+    {
+      "id": "https://openalex.org/W4300000002",
+      "doi": null,
+      "display_name": "Language models for triage: a review",
+      "publication_year": 2023,
+      "type": "review",
+      "cited_by_count": 3,
+      "primary_location": {"source": null, "pdf_url": null},
+      "best_oa_location": null,
+      "authorships": [],
+      "abstract_inverted_index": null
+    }
+  ]
+}

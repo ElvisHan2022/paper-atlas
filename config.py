@@ -69,8 +69,9 @@ CLUSTER_K_RANGE = (2, 5)    # try this many topic clusters, keep the best silhou
 RUNS_DIR = OUTPUT_DIR / "runs"
 
 # Where to search, and how many hits to take from each before merging duplicates.
-SOURCES = {"pubmed": "PubMed", "semantic_scholar": "Semantic Scholar", "arxiv": "arXiv"}
-SOURCE_LIMITS = {"semantic_scholar": 100, "pubmed": 60, "arxiv": 30}
+SOURCES = {"pubmed": "PubMed", "openalex": "OpenAlex (all journals)",
+           "semantic_scholar": "Semantic Scholar", "arxiv": "arXiv"}
+SOURCE_LIMITS = {"semantic_scholar": 80, "openalex": 80, "pubmed": 60, "arxiv": 25}
 
 # Venue families, matched as whole words against the lowercase venue name (first match wins).
 VENUE_TYPES = [
@@ -92,6 +93,11 @@ VENUE_TYPES = [
         "acl", "emnlp", "naacl", "coling", "findings", "ml4h", "machine learning for health",
         "chil", "mlhc", "kdd", "nat mach intell", "nature machine intelligence", "tmlr",
         "jmlr", "cvpr", "miccai"]),
+    # Broad science journals last, so "Nature Medicine" is caught above as clinical.
+    ("General science journal", [
+        "^nature$", "^science$", "^cell$", "nat commun", "nature communications", "sci adv",
+        "science advances", "sci rep", "scientific reports", "proc natl acad sci", "pnas",
+        "plos one"]),
 ]
 
 # Evidence lenses: different journals reward different kinds of work. The lens tells the

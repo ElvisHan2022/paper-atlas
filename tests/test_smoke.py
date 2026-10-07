@@ -208,6 +208,10 @@ def test_venue_and_evidence_tags():
     assert venue_type("arXiv", ["arxiv"]) == "Preprint"
     assert venue_type("Manchester Medical Review") == "Journal"   # "chest" is not a whole word
     assert venue_type("") == "Unknown venue"
+    assert venue_type("Nature") == "General science journal"
+    assert venue_type("Nature Medicine") == "Clinical journal"
+    assert venue_type("Nature Reviews Cardiology") == "Journal"
+    assert venue_type("Lecture Notes in Computer Science") == "Journal"
     assert evidence_tags(["Journal Article", "Multicenter Study", "Randomized Controlled Trial"]) \
         == ["RCT", "Multicenter"]
     assert evidence_tags(["MetaAnalysis", "Review"]) == ["Meta-analysis", "Review"]
@@ -245,3 +249,20 @@ def test_rejected_key_falls_back_to_local_mode(monkeypatch):
     monkeypatch.setattr(llm, "KEY_STATUS", "unchecked")
     assert llm.check_key() == "rejected"
     assert not llm.has_key()          # searches run with the local models instead of failing
+
+
+def test_parse_openalex():
+    import json as _json
+    from sources import merge, parse_openalex, parse_pubmed, rebuild_abstract
+    a, b = parse_openalex(_json.loads((FIXTURES / "openalex.json").read_text(encoding="utf-8")))
+    assert a["paperId"] == "OPENALEX:W4300000001" and a["venue"] == "Nature Medicine"
+    assert a["abstract"] == "We validated a sepsis model in a trial."
+    assert a["externalIds"]["DOI"] == "10.1038/s41591-024-00001-1"
+    assert a["openAccessPdf"]["url"].endswith(".pdf") and a["citationCount"] == 87
+    assert [x["name"] for x in a["authors"]] == ["Mei Lin", "Omar Haddad"]
+    assert b["abstract"] is None and b["publicationTypes"] == ["Review"] and b["venue"] == ""
+    assert rebuild_abstract({}) is None
+    # Papers without an abstract are dropped at merge time.
+    merged = merge({"openalex": [a, b],
+                    "pubmed": parse_pubmed((FIXTURES / "pubmed_efetch.xml").read_text(encoding="utf-8"))})
+    assert [p["source"] for p in merged] == ["openalex", "pubmed", "pubmed"]
