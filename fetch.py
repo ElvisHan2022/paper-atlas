@@ -6,7 +6,9 @@ import argparse
 import hashlib
 import json
 import os
+import threading
 import time
+from urllib.parse import urlparse
 
 import requests
 from tqdm import tqdm
@@ -14,40 +16,55 @@ from tqdm import tqdm
 import config
 import db
 
-_last_request_at = 0.0
+_last_request_at = {}           # host -> time of the last real request
+_rate_lock = threading.Lock()  # the web app can run searches in parallel threads
 
 
-def cached_get_json(url, params=None):
-    """GET a URL, caching the JSON body on disk so reruns never hit the API twice."""
-    global _last_request_at
-    full_url = requests.Request("GET", url, params=params).prepare().url
-    key = hashlib.sha256(full_url.encode()).hexdigest()[:32]
-    path = config.CACHE_DIR / "http" / f"{key}.json"
-    if path.exists():
-        return json.loads(path.read_text(encoding="utf-8"))
-
-    api_key = os.getenv("S2_API_KEY")
-    headers = {"x-api-key": api_key} if api_key else {}
-    wait = config.S2_SECONDS_WITH_KEY if api_key else config.S2_SECONDS_PER_REQUEST
-
-    for attempt in range(8):
-        # Rate limit: only real network calls count, cache hits are free.
-        sleep_for = wait - (time.time() - _last_request_at)
+def _wait_for_slot(host, min_interval):
+    """Rate limit per host: only real network calls count, cache hits are free."""
+    with _rate_lock:
+        sleep_for = min_interval - (time.time() - _last_request_at.get(host, 0.0))
         if sleep_for > 0:
             time.sleep(sleep_for)
-        _last_request_at = time.time()
-        resp = requests.get(full_url, headers=headers, timeout=60)
+        _last_request_at[host] = time.time()
+
+
+def cached_get(url, params=None, kind="json", min_interval=1.0, headers=None):
+    """GET a URL and cache the body on disk (keyed by URL hash) so reruns never refetch.
+
+    kind="json" returns parsed JSON; kind="text" returns the raw text (PubMed and arXiv
+    answer in XML).
+    """
+    full_url = requests.Request("GET", url, params=params).prepare().url
+    key = hashlib.sha256(full_url.encode()).hexdigest()[:32]
+    path = config.CACHE_DIR / "http" / f"{key}.{'json' if kind == 'json' else 'txt'}"
+    if path.exists():
+        body = path.read_text(encoding="utf-8")
+        return json.loads(body) if kind == "json" else body
+
+    host = urlparse(full_url).netloc
+    for attempt in range(6):
+        _wait_for_slot(host, min_interval)
+        resp = requests.get(full_url, headers=headers or {}, timeout=60)
         if resp.status_code == 429 or resp.status_code >= 500:
             time.sleep(2 ** attempt)  # back off: 1, 2, 4, 8... seconds
             continue
         if resp.status_code == 404:
             return None
         resp.raise_for_status()
-        data = resp.json()
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(data), encoding="utf-8")
-        return data
+        path.write_text(resp.text, encoding="utf-8")
+        return resp.json() if kind == "json" else resp.text
     raise RuntimeError(f"Gave up after repeated 429/5xx: {full_url}")
+
+
+def cached_get_json(url, params=None):
+    """Semantic Scholar GET: adds the optional API key and the matching rate limit."""
+    api_key = os.getenv("S2_API_KEY")
+    return cached_get(
+        url, params, "json",
+        config.S2_SECONDS_WITH_KEY if api_key else config.S2_SECONDS_PER_REQUEST,
+        {"x-api-key": api_key} if api_key else None)
 
 
 def search_papers(topic, n):
