@@ -14,9 +14,9 @@ import numpy as np
 import config
 import db
 import extract
-import fetch
 import llm
 import score
+import sources
 
 STAGES = [
     "Processing your query",
@@ -34,6 +34,9 @@ RUBRIC = [
     (2, "Tangential", "Shares keywords or methods, different question."),
     (1, "Unrelated", "Off topic."),
 ]
+
+LENS_RUBRIC = [(5, "Exemplary fit"), (4, "Good fit"), (3, "Partial fit"), (2, "Weak fit"),
+               (1, "Does not fit")]
 
 REVIEW_SECTIONS = [
     ("study_design", "Study design"),
@@ -71,21 +74,31 @@ def understand_query(query):
 
 # ---------- stage 3: scoring ----------
 
-def judge_many(topic, criteria, papers, on_done):
-    """LLM-judge papers in parallel. Returns {paper_id: (score, rationale, stats)}."""
+def judge_many(topic, criteria, papers, on_done, lens=None):
+    """LLM-judge papers in parallel. Returns {paper_id: (score, rationale, stats, lens_score)}."""
     llm.client()  # create the shared client once, before the threads start
     out = {}
     with ThreadPoolExecutor(max_workers=config.WEB_WORKERS) as pool:
-        futures = {pool.submit(score.judge, topic, criteria, p): p["paper_id"] for p in papers}
+        futures = {pool.submit(score.judge, topic, criteria, p, lens): p["paper_id"]
+                   for p in papers}
         for f in as_completed(futures):
             out[futures[f]] = f.result()
             on_done(len(out))
     return out
 
 
+def final_llm_score(relevance, lens_score):
+    """Relevance, blended with the evidence-lens score when a lens is active."""
+    if relevance is None:
+        return None
+    if lens_score is None:
+        return relevance
+    return (1 - config.LENS_WEIGHT) * relevance + config.LENS_WEIGHT * lens_score
+
+
 def rank_key(p):
-    """LLM rubric first; the cross-encoder average breaks ties and ranks unjudged papers."""
-    llm_score = p["scores"]["llm"]
+    """LLM score first; the cross-encoder average breaks ties and ranks unjudged papers."""
+    llm_score = p.get("final", p["scores"]["llm"])
     return (llm_score if llm_score is not None else -1.0, p["ce_mean"])
 
 
@@ -111,15 +124,20 @@ def valid_review(d):
     return isinstance(d.get("overview"), str)
 
 
-def write_review(topic, papers):
+def write_review(topic, papers, lens=None):
     """Synthesize the extractions into five sections, citing papers as [1]..[10]."""
     blocks = []
     for p in papers:
         facts = p.get("extraction") or {"abstract": p["abstract"]}
-        blocks.append(f"[{p['rank']}] {p['title']} ({p['year']})\n{json.dumps(facts)}")
+        kind = "; ".join([p.get("venue_type") or "", *(p.get("evidence") or [])]).strip("; ")
+        blocks.append(f"[{p['rank']}] {p['title']} ({p['year']}, {p.get('venue') or 'venue unknown'}"
+                      f"{' - ' + kind if kind else ''})\n{json.dumps(facts)}")
     keys = ", ".join(f'"{k}"' for k, _ in REVIEW_SECTIONS)
+    focus = (f"\nThe reader is weighing evidence through a '{lens['label']}' lens: "
+             f"{lens['criteria']} Say in the discussion how well this set meets that bar.\n"
+             if lens and lens.get("criteria") else "")
     user = f"""Topic: {topic}
-
+{focus}
 Below are {len(papers)} papers, each with structured facts extracted from it.
 
 {chr(10).join(blocks)}
@@ -130,6 +148,7 @@ Write a short systematic review of these papers. Return JSON only, with keys "ov
 - Cite papers by their number in square brackets, e.g. [3] or [2, 7]. Every claim needs a citation.
 - Compare across papers (agreement, disagreement, gaps). Do not just list them one by one.
 - limitations: combine what authors stated with gaps you see across the set, and say which is which.
+- Note the strength of evidence (e.g. RCT vs retrospective vs preprint) where it matters.
 - If the facts don't support something, say so plainly instead of guessing."""
     system = ("You write concise, evidence-based systematic reviews for busy researchers. "
               "You only state what the provided facts support.")
@@ -183,16 +202,21 @@ def choose_clusters(vectors):
     return best[0] if best[0] is not None else np.zeros(len(vectors), dtype=int)
 
 
-def keyword_names(texts, labels):
-    """Fallback cluster names: the top TF-IDF words that set each cluster apart."""
+def keyword_names(texts, labels, skip=()):
+    """Fallback cluster names: the two words that most set each cluster apart.
+
+    Words in `skip` (usually the search terms, which every cluster shares) are left out.
+    """
     from sklearn.feature_extraction.text import TfidfVectorizer
-    vec = TfidfVectorizer(stop_words="english", max_features=3000, ngram_range=(1, 2))
+    vec = TfidfVectorizer(stop_words="english", max_features=3000, token_pattern=r"(?u)\b[a-zA-Z][a-zA-Z\-]{2,}\b")
     m = vec.fit_transform(texts)
-    words = np.array(vec.get_feature_names_out())
+    words = vec.get_feature_names_out()
+    skip = {w.lower() for w in skip} | {"study", "studies", "paper", "results", "using", "based"}
     names = []
     for c in range(labels.max() + 1):
         weights = np.asarray(m[labels == c].mean(axis=0)).ravel()
-        names.append(" / ".join(words[np.argsort(-weights)[:2]]).title())
+        picked = [words[i] for i in np.argsort(-weights) if words[i] not in skip][:2]
+        names.append(" & ".join(w.capitalize() for w in picked) or f"Topic {c + 1}")
     return names
 
 
@@ -207,16 +231,20 @@ def name_clusters(topic, titles_by_cluster, texts, labels):
         lambda d: isinstance(d.get("names"), list) and len(d["names"]) == len(titles_by_cluster))
     if data:
         return [str(n) for n in data["names"]], stats
-    return keyword_names(texts, labels), stats
+    return keyword_names(texts, labels, re.findall(r"[a-z]+", topic.lower())), stats
 
 
-def topic_clusters(topic, candidates, top_ids):
+def topic_clusters(topic, candidates, top_ids, use_llm=True):
     """Cluster every candidate by meaning; chart = cumulative papers per cluster by year."""
     texts = [score.paper_text(p) for p in candidates]
     labels = choose_clusters(embed(texts))
     k = int(labels.max()) + 1
     titles = [[p["title"] for p, c in zip(candidates, labels) if c == i] for i in range(k)]
-    names, stats = name_clusters(topic, titles, texts, labels)
+    if use_llm:
+        names, stats = name_clusters(topic, titles, texts, labels)
+    else:
+        names = keyword_names(texts, labels, re.findall(r"[a-z]+", topic.lower()))
+        stats = {"cost_usd": 0.0}
 
     years = [p["year"] for p in candidates if p["year"]]
     span = list(range(min(years), max(years) + 1)) if years else []
@@ -240,58 +268,96 @@ def topic_clusters(topic, candidates, top_ids):
 
 # ---------- the whole run ----------
 
-def paper_card(row):
+def paper_card(p):
+    """The fields the UI needs, from a merged search result (see sources.py)."""
+    ext = p.get("externalIds") or {}
+    types = p.get("publicationTypes") or []
     return {
-        "paper_id": row["paper_id"], "title": row["title"], "abstract": row["abstract"],
-        "year": row["year"], "venue": row["venue"], "citations": row["citation_count"],
-        "authors": json.loads(row["authors_json"] or "[]"),
-        "pdf_url": row["pdf_url"], "doi": row["doi"],
-        "url": f"https://www.semanticscholar.org/paper/{row['paper_id']}",
+        "paper_id": p["paperId"], "title": p["title"], "abstract": p["abstract"],
+        "year": p.get("year"), "venue": p.get("venue") or "",
+        "citations": p.get("citationCount"),
+        "authors": [a.get("name") for a in (p.get("authors") or []) if a.get("name")],
+        "pdf_url": (p.get("openAccessPdf") or {}).get("url"), "doi": ext.get("DOI"),
+        "url": p.get("url") or f"https://www.semanticscholar.org/paper/{p['paperId']}",
+        "sources": p.get("sources") or [p.get("source", "semantic_scholar")],
+        "venue_type": sources.venue_type(p.get("venue"), p.get("sources") or [], types),
+        "evidence": sources.evidence_tags(types),
+        "publicationTypes": types,
     }
 
 
-def run(query, report=lambda stage, fraction, message: None):
+def api_error_message(e):
+    """Plain-English version of an Anthropic API error."""
+    status = getattr(e, "status_code", None)
+    text = str(getattr(e, "message", e))
+    if status == 401:
+        return ("Your Anthropic API key was rejected. Check the ANTHROPIC_API_KEY line in .env "
+                "(no quotes or spaces), then restart app.py.")
+    if status == 400 and "credit" in text.lower():
+        return "Your Anthropic account is out of credit. Add credit at console.anthropic.com."
+    if status == 429:
+        return "The Anthropic API is rate-limiting this key. Wait a minute and try again."
+    return f"The Anthropic API returned an error ({status}): {text}"
+
+
+def run(query, report=lambda stage, fraction, message: None, source_names=None,
+        lens_key="balanced"):
+    try:
+        return _run(query, report, source_names, lens_key)
+    except Exception as e:
+        if type(e).__module__.startswith("anthropic") and hasattr(e, "status_code"):
+            raise PipelineError(api_error_message(e)) from e
+        raise
+
+
+def _run(query, report, source_names, lens_key):
     query = re.sub(r"\s+", " ", query or "").strip()
     if len(query) < 3:
         raise PipelineError("Type a topic or a few keywords (at least 3 characters).")
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        raise PipelineError("ANTHROPIC_API_KEY is not set. Add it to the .env file and "
-                            "restart the app.")
+    source_names = [s for s in (source_names or list(config.SOURCES)) if s in config.SOURCES]
+    if not source_names:
+        raise PipelineError("Pick at least one source to search.")
+    lens = config.LENSES.get(lens_key) or config.LENSES["balanced"]
+    has_llm = bool(os.getenv("ANTHROPIC_API_KEY"))
     cost = 0.0
 
     # 1) Processing your query
     report(0, 0.1, "Reading your query")
-    topic, criteria, stats = understand_query(query)
-    cost += stats["cost_usd"]
+    if has_llm:
+        topic, criteria, stats = understand_query(query)
+        cost += stats["cost_usd"]
+    else:
+        topic, criteria = query, f"Papers whose main contribution addresses: {query}."
     report(0, 1.0, f"Searching for: {topic}")
 
     # 2) Identifying candidate papers
-    report(1, 0.1, "Searching Semantic Scholar")
-    try:
-        raw = fetch.search_papers(query, config.WEB_CANDIDATES)
-    except Exception as e:
-        raise PipelineError(f"Could not reach Semantic Scholar ({e}). Check your connection "
-                            "and try again in a minute.") from e
+    names = ", ".join(config.SOURCES[s] for s in source_names)
+    report(1, 0.1, f"Searching {names}")
+    raw, counts, errors = sources.search_all(query, source_names)
+    if errors and not counts:
+        detail = "; ".join(f"{config.SOURCES[s]}: {e}" for s, e in errors.items())
+        raise PipelineError(f"Could not reach any source ({detail}). Check your connection and "
+                            "try again in a minute.")
     if len(raw) < config.WEB_TOP_N:
         raise PipelineError(f"Only {len(raw)} papers with abstracts matched. Try broader "
-                            "keywords.")
+                            "keywords or more sources.")
     conn = db.connect()
     for p in raw:
         db.upsert_paper(conn, p, query)
     conn.commit()
-    ids = {p["paperId"] for p in raw}
-    candidates = [paper_card(r) for r in db.papers_for_topic(conn, query)
-                  if r["paper_id"] in ids]
-    report(1, 1.0, f"Found {len(candidates)} candidate papers")
+    candidates = [paper_card(p) for p in raw]
+    n = len(candidates)
+    merged = sum(counts.values()) - n
+    report(1, 1.0, f"Found {n} candidate papers" + (f" ({merged} duplicates merged)" if merged > 0 else ""))
 
     # 3) Scoring the papers
     q = score.query_text(topic, criteria)
-    n = len(candidates)
+    span = 0.45 if has_llm else 0.95   # without the LLM judge, local models are the whole stage
     for i, scorer in enumerate(("minilm", "bge")):
-        report(2, 0.05 + 0.2 * i, f"Ranking with {scorer.upper()} (local model)")
+        report(2, 0.05 + span / 2 * i, f"Ranking with {scorer.upper()} (local model)")
         results = score.cross_encode(
             scorer, q, candidates,
-            on_batch=lambda done, i=i: report(2, 0.05 + 0.2 * i + 0.2 * done / n,
+            on_batch=lambda done, i=i: report(2, 0.05 + span / 2 * (i + done / n),
                                               f"{scorer.upper()}: {done}/{n} papers"))
         for p, (s, ms) in zip(candidates, results):
             p.setdefault("scores", {})[scorer] = s
@@ -299,21 +365,23 @@ def run(query, report=lambda stage, fraction, message: None):
     conn.commit()
     for p in candidates:
         p["ce_mean"] = (p["scores"]["minilm"] + p["scores"]["bge"]) / 2
-        p["scores"]["llm"] = None
+        p["scores"]["llm"] = p["scores"]["lens"] = None
         p["rationale"] = None
 
     shortlist = sorted(candidates, key=lambda p: -p["ce_mean"])[:config.WEB_LLM_SHORTLIST]
-    m = len(shortlist)
-    report(2, 0.45, f"LLM judge reading the top {m} abstracts")
-    judged = judge_many(topic, criteria, shortlist,
-                        lambda done: report(2, 0.45 + 0.55 * done / m,
-                                            f"LLM judge: {done}/{m} papers"))
-    for p in shortlist:
-        s, rationale, st = judged[p["paper_id"]]
-        p["scores"]["llm"], p["rationale"] = s, rationale
-        cost += st["cost_usd"]
-        db.save_score(conn, p["paper_id"], query, "llm", s, rationale, **st)
-    conn.commit()
+    m = len(shortlist) if has_llm else 0
+    if has_llm:
+        report(2, 0.5, f"LLM judge reading the top {m} abstracts")
+        judged = judge_many(topic, criteria, shortlist,
+                            lambda done: report(2, 0.5 + 0.5 * done / m,
+                                                f"LLM judge: {done}/{m} papers"), lens)
+        for p in shortlist:
+            s, rationale, st, lens_score = judged[p["paper_id"]]
+            p["scores"]["llm"], p["scores"]["lens"], p["rationale"] = s, lens_score, rationale
+            p["final"] = final_llm_score(s, lens_score)
+            cost += st["cost_usd"]
+            db.save_score(conn, p["paper_id"], query, "llm", s, rationale, **st)
+        conn.commit()
 
     # 4) Finishing scoring
     ranked = sorted(candidates, key=rank_key, reverse=True)
@@ -321,40 +389,55 @@ def run(query, report=lambda stage, fraction, message: None):
     for rank, p in enumerate(top, start=1):
         p["rank"] = rank
         p["level"] = None if p["scores"]["llm"] is None else round(p["scores"]["llm"] * 4) + 1
-    report(3, 0.05, f"Extracting study details from the top {len(top)} papers")
-    extracted = extract_many(top, lambda done: report(
-        3, 0.05 + 0.45 * done / len(top), f"Extracted {done}/{len(top)} papers"))
-    for p in top:
-        data, kind, st = extracted[p["paper_id"]]
+        p["lens_level"] = None if p["scores"]["lens"] is None else round(p["scores"]["lens"] * 4) + 1
+        p["extraction"], p["source_text_kind"] = None, "abstract_only"
+    review = None
+    if has_llm:
+        report(3, 0.05, f"Extracting study details from the top {len(top)} papers")
+        extracted = extract_many(top, lambda done: report(
+            3, 0.05 + 0.45 * done / len(top), f"Extracted {done}/{len(top)} papers"))
+        for p in top:
+            data, kind, st = extracted[p["paper_id"]]
+            cost += st["cost_usd"]
+            p["extraction"], p["source_text_kind"] = data, kind
+            if data:
+                db.save_extraction(conn, p["paper_id"], query, data, kind)
+        conn.commit()
+        report(3, 0.55, "Writing the systematic review")
+        review, st = write_review(topic, top, lens)
         cost += st["cost_usd"]
-        p["extraction"], p["source_text_kind"] = data, kind
-        if data:
-            db.save_extraction(conn, p["paper_id"], query, data, kind)
-    conn.commit()
-
-    report(3, 0.55, "Writing the systematic review")
-    review, st = write_review(topic, top)
-    cost += st["cost_usd"]
 
     report(3, 0.85, "Grouping papers into topics")
-    clusters, cluster_of, st = topic_clusters(topic, candidates, {p["paper_id"] for p in top})
+    clusters, cluster_of, st = topic_clusters(topic, candidates, {p["paper_id"] for p in top},
+                                              use_llm=has_llm)
     cost += st["cost_usd"]
     for p in top:
         p["cluster"] = cluster_of[p["paper_id"]]
 
-    levels = [p["scores"]["llm"] for p in shortlist if p["scores"]["llm"] is not None]
-    counts = {lv: sum(1 for s in levels if round(s * 4) + 1 == lv) for lv, _, _ in RUBRIC}
+    def level_counts(key):
+        vals = [p["scores"][key] for p in shortlist if p["scores"][key] is not None]
+        return {lv: sum(1 for v in vals if round(v * 4) + 1 == lv) for lv in range(1, 6)}
+
+    rel_counts, lens_counts = level_counts("llm"), level_counts("lens")
     result = {
         "query": query, "topic": topic, "criteria": criteria,
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "n_candidates": n, "n_shortlisted": m, "cost_usd": round(cost, 4),
+        "has_llm": has_llm,
+        "sources": {"searched": source_names, "counts": counts, "errors": errors,
+                    "labels": config.SOURCES},
+        "lens": {"key": lens_key if lens_key in config.LENSES else "balanced", **lens},
+        "lens_weight": config.LENS_WEIGHT,
         "models": {"minilm": config.CROSS_ENCODERS["minilm"],
                    "bge": config.CROSS_ENCODERS["bge"], "llm": config.LLM_MODEL},
-        "papers": [{k: v for k, v in p.items() if k != "ce_mean"} for p in top],
+        "papers": [{k: v for k, v in p.items() if k not in ("ce_mean", "final")} | {"final": p.get("final")}
+                   for p in top],
         "review": review,
         "clusters": clusters,
-        "rubric": [{"level": lv, "label": label, "description": desc, "count": counts[lv]}
+        "rubric": [{"level": lv, "label": label, "description": desc, "count": rel_counts[lv]}
                    for lv, label, desc in RUBRIC],
+        "lens_rubric": ([{"level": lv, "label": label, "count": lens_counts[lv]}
+                         for lv, label in LENS_RUBRIC] if lens.get("criteria") else None),
     }
     save_run(result)
     report(3, 1.0, "Done")

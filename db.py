@@ -65,7 +65,7 @@ def upsert_paper(conn, p, topic):
              authors_json=excluded.authors_json""",
         (p["paperId"], p.get("title"), p.get("abstract"), p.get("year"), p.get("venue"),
          p.get("citationCount") or 0, ext.get("DOI"), ext.get("ArXiv"), pdf,
-         json.dumps(authors), "semantic_scholar", topic),
+         json.dumps(authors), p.get("source", "semantic_scholar"), topic),
     )
     conn.execute("INSERT OR IGNORE INTO paper_topics VALUES (?,?)", (p["paperId"], topic))
 

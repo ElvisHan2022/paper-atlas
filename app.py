@@ -7,6 +7,7 @@ a second for progress. The pipeline runs in a background thread, so the page sta
 """
 import argparse
 import json
+import os
 import threading
 import traceback
 import uuid
@@ -22,10 +23,11 @@ jobs = {}                 # job id -> dict the browser polls
 jobs_lock = threading.Lock()
 
 
-def new_job(query):
+def new_job(query, source_names=None, lens="balanced"):
     job_id = uuid.uuid4().hex[:12]
-    job = {"id": job_id, "query": query, "status": "running", "stage": 0,
-           "percent": 0.0, "message": "Starting", "error": None, "result": None}
+    job = {"id": job_id, "query": query, "sources": source_names, "lens": lens,
+           "status": "running", "stage": 0, "percent": 0.0, "message": "Starting",
+           "error": None, "result": None}
     with jobs_lock:
         jobs[job_id] = job
     threading.Thread(target=run_job, args=(job,), daemon=True).start()
@@ -40,7 +42,7 @@ def run_job(job):
             job["message"] = message
 
     try:
-        result = pipeline.run(job["query"], report)
+        result = pipeline.run(job["query"], report, job["sources"], job["lens"])
         with jobs_lock:
             job.update(status="done", percent=100.0, stage=len(pipeline.STAGES),
                        message="Done", result=result)
@@ -94,6 +96,13 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 snapshot["stages"] = pipeline.STAGES
                 self.send_json(snapshot)
+        elif self.path == "/api/options":
+            self.send_json({
+                "sources": config.SOURCES,
+                "lenses": {k: {"label": v["label"], "summary": v["summary"]}
+                           for k, v in config.LENSES.items()},
+                "has_llm": bool(os.getenv("ANTHROPIC_API_KEY")),
+            })
         elif self.path == "/api/runs":
             self.send_json(recent_runs())
         elif self.path.startswith("/api/runs/"):
@@ -113,13 +122,16 @@ class Handler(BaseHTTPRequestHandler):
             return
         length = int(self.headers.get("Content-Length") or 0)
         try:
-            query = json.loads(self.rfile.read(length) or b"{}").get("query", "")
+            body = json.loads(self.rfile.read(length) or b"{}")
         except ValueError:
-            query = ""
+            body = {}
+        query = str(body.get("query", ""))
         if len(query.strip()) < 3:
             self.send_json({"error": "Type a topic or a few keywords."}, 400)
             return
-        self.send_json({"job_id": new_job(query[:300])})
+        chosen = [s for s in body.get("sources") or [] if s in config.SOURCES] or None
+        lens = body.get("lens") if body.get("lens") in config.LENSES else "balanced"
+        self.send_json({"job_id": new_job(query[:300], chosen, lens)})
 
     def log_message(self, fmt, *args):
         pass  # polling would flood the terminal
