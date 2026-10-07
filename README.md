@@ -18,14 +18,31 @@ pytest
 python app.py
 ```
 
-This opens http://127.0.0.1:8000. Type a topic or a few keywords, and the app:
+This opens http://127.0.0.1:8000. Type a topic or a few keywords. Under the search bar you can pick:
 
-1. **Processes your query.** Claude restates it as a topic and writes relevance criteria.
-2. **Identifies candidate papers.** It pulls the top 100 Semantic Scholar matches that have abstracts.
-3. **Scores the papers.** MiniLM and BGE score all 100 locally; the top 30 go to the LLM judge.
-4. **Finishes scoring.** It ranks the papers, extracts the top 10, writes the review, and groups the candidates into topics.
+- **Sources:** PubMed, Semantic Scholar, and arXiv. Papers found in more than one are merged by DOI or title.
+- **Evidence lens:** different journals reward different work, so the lens tells the LLM judge what to value on top of relevance:
+  - **Balanced:** relevance only.
+  - **Clinical impact:** trials, external validation, deployment and patient outcomes (NEJM, Lancet, JAMA, Nature Medicine).
+  - **Methods rigor:** baselines, uncertainty, validation, bias and calibration (JAMIA, npj Digital Medicine).
+  - **Novelty:** new methods, models and benchmarks (NeurIPS, ICML, ML4H, CHIL).
 
-Results open in four tabs: **Candidate papers** (the top 10 with scores and the judge's reasoning), **Systematic review** (five sections: study design, methods, results, limitations, discussion; each claim links back to its papers), **Topic clusters** (a line chart of papers per topic over time), and **Scoring rubric** (how the papers were ranked). Finished searches are saved in `outputs/runs/` and listed under "Recent searches". A typical search costs a few cents.
+The search then runs in four stages:
+
+1. **Processing your query.** Claude restates it as a topic and writes relevance criteria.
+2. **Identifying candidate papers.** It searches the chosen sources (about 100 + 60 + 30 hits) and merges duplicates.
+3. **Scoring the papers.** MiniLM and BGE score every candidate locally; the top 30 go to the LLM judge, which scores relevance (1-5) and, with a lens, lens fit (1-5). The final rank is 60% relevance + 40% lens fit.
+4. **Finishing scoring.** It extracts the top 10, writes the review, and groups all candidates into topics.
+
+Results open in four tabs:
+- **Candidate papers:** the top 10, with scores, the judge's reasoning, evidence type (RCT, meta-analysis…) and venue type.
+- **Systematic review:** five sections (study design, methods, results, limitations, discussion), with every claim linked to its papers.
+- **Topic clusters:** a line chart of papers per topic over time.
+- **Scoring rubric:** how the papers were ranked.
+
+Finished searches are saved in `outputs/runs/` and listed under "Recent searches". A search costs a few cents with Haiku.
+
+**No API key?** The app still works. It ranks papers with the local models and builds the topic chart. The LLM judge, the lens and the review need `ANTHROPIC_API_KEY` in `.env`.
 
 ## Demo (command line)
 
