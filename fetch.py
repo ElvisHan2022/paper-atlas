@@ -16,13 +16,19 @@ from tqdm import tqdm
 import config
 import db
 
-_last_request_at = {}           # host -> time of the last real request
-_rate_lock = threading.Lock()  # the web app can run searches in parallel threads
+_last_request_at = {}             # host -> time of the last real request
+_host_locks = {}                  # host -> lock, so each host is rate-limited on its own
+_host_locks_guard = threading.Lock()
 
 
 def _wait_for_slot(host, min_interval):
-    """Rate limit per host: only real network calls count, cache hits are free."""
-    with _rate_lock:
+    """Rate limit per host: only real network calls count, cache hits are free.
+
+    Each host has its own lock, so waiting on Semantic Scholar never delays PubMed.
+    """
+    with _host_locks_guard:
+        lock = _host_locks.setdefault(host, threading.Lock())
+    with lock:
         sleep_for = min_interval - (time.time() - _last_request_at.get(host, 0.0))
         if sleep_for > 0:
             time.sleep(sleep_for)

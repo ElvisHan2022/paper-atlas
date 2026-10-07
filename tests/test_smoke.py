@@ -266,3 +266,23 @@ def test_parse_openalex():
     merged = merge({"openalex": [a, b],
                     "pubmed": parse_pubmed((FIXTURES / "pubmed_efetch.xml").read_text(encoding="utf-8"))})
     assert [p["source"] for p in merged] == ["openalex", "pubmed", "pubmed"]
+
+
+def test_search_all_runs_sources_in_parallel(monkeypatch):
+    import time
+    import sources
+
+    def slow(name):
+        def search(query, n):
+            time.sleep(0.4)
+            return [{"paperId": name, "title": f"{name} paper", "abstract": "x", "externalIds": {}}]
+        return search
+
+    def broken(query, n):
+        raise ConnectionError("403 Forbidden")
+
+    monkeypatch.setattr(sources, "SEARCHERS", {"a": slow("a"), "b": slow("b"), "c": broken})
+    start = time.perf_counter()
+    merged, counts, errors = sources.search_all("q", ["a", "b", "c"], {"a": 5, "b": 5, "c": 5})
+    assert time.perf_counter() - start < 0.7          # ~0.4 s in parallel, not 0.8 s in a row
+    assert counts == {"a": 1, "b": 1} and "403" in errors["c"] and len(merged) == 2

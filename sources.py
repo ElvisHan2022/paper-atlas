@@ -11,6 +11,7 @@ OpenAlex: https://docs.openalex.org  (free, open index of ~250M works across all
 """
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import xml.etree.ElementTree as ET
 
 import config
@@ -217,7 +218,8 @@ def merge(results_by_source):
     `sources` lists everywhere the paper was found.
     """
     merged, order = {}, []
-    for source in ("semantic_scholar", "openalex", "pubmed", "arxiv"):
+    preferred = ["semantic_scholar", "openalex", "pubmed", "arxiv"]
+    for source in preferred + [s for s in results_by_source if s not in preferred]:
         for p in results_by_source.get(source, []):
             if not p.get("title") or not p.get("abstract"):
                 continue
@@ -242,14 +244,21 @@ def merge(results_by_source):
 
 
 def search_all(query, sources, limits=None):
-    """Run each chosen source; one failing source is reported, not fatal."""
+    """Search the chosen sources in parallel; one failing source is reported, not fatal.
+
+    The sources are independent of each other, so this is the one place where fanning out
+    is pure gain: total time is the slowest source, not the sum of all of them.
+    """
     limits = limits or config.SOURCE_LIMITS
     results, errors = {}, {}
-    for source in sources:
-        try:
-            results[source] = SEARCHERS[source](query, limits[source])
-        except Exception as e:
-            errors[source] = str(e)
+    with ThreadPoolExecutor(max_workers=len(sources) or 1) as pool:
+        futures = {pool.submit(SEARCHERS[s], query, limits[s]): s for s in sources}
+        for future in as_completed(futures):
+            source = futures[future]
+            try:
+                results[source] = future.result()
+            except Exception as e:
+                errors[source] = str(e)
     return merge(results), {s: len(v) for s, v in results.items()}, errors
 
 
