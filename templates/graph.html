@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paper Atlas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<style>
+  :root {
+    --bg: #fcfcfb; --panel: #ffffff; --border: #e4e2dc;
+    --text: #0b0b0b; --muted: #52514e; --edge-cites: #52514e; --edge-coupling: #b9b7b0;
+    --accent: #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1a1a19; --panel: #232322; --border: #383835;
+      --text: #ffffff; --muted: #c3c2b7; --edge-cites: #c3c2b7; --edge-coupling: #5b5a56;
+      --accent: #3987e5;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1a1a19; --panel: #232322; --border: #383835;
+    --text: #ffffff; --muted: #c3c2b7; --edge-cites: #c3c2b7; --edge-coupling: #5b5a56;
+    --accent: #3987e5;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: grid; grid-template-rows: auto 1fr; grid-template-columns: 1fr 380px;
+    grid-template-areas: "top top" "map side";
+  }
+  header {
+    grid-area: top; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center;
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .topic { color: var(--muted); }
+  header label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  header .hint { color: var(--muted); margin-left: auto; font-size: 12px; }
+  #cy { grid-area: map; min-height: 0; }
+  aside {
+    grid-area: side; overflow-y: auto; padding: 16px; background: var(--panel);
+    border-left: 1px solid var(--border);
+  }
+  aside h2 { font-size: 16px; margin: 0 0 4px; }
+  aside h3 { font-size: 13px; margin: 16px 0 4px; text-transform: uppercase;
+             letter-spacing: .04em; color: var(--muted); }
+  aside p, aside ul { margin: 4px 0; }
+  aside ul { padding-left: 18px; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+  .score { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; }
+  .score b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .score span { color: var(--muted); font-size: 12px; }
+  .evidence { color: var(--muted); font-size: 12px; font-style: italic; }
+  .inferred { border-left: 3px solid var(--border); padding-left: 8px; }
+  .empty { color: var(--muted); }
+  a { color: var(--accent); }
+  @media (max-width: 760px) {
+    body { grid-template-columns: 1fr; grid-template-rows: auto 60vh auto;
+           grid-template-areas: "top" "map" "side"; height: auto; }
+    aside { border-left: 0; border-top: 1px solid var(--border); }
+    header .hint { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Paper Atlas</h1>
+  <span class="topic" id="topic"></span>
+  <label><input type="checkbox" id="show-cites" checked> citations</label>
+  <label><input type="checkbox" id="show-coupling" checked> coupling</label>
+  <span class="hint">x = year · y = citations (log) · size = relevance · color = community</span>
+</header>
+<div id="cy" role="img" aria-label="Citation map of relevant papers"></div>
+<aside id="panel"><p class="empty">Click a paper to see its scores and extraction card.</p></aside>
+
+<script>
+const DATA = /*__GRAPH_DATA__*/null;
+
+function css(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+function fmt(x) { return x === null || x === undefined ? "–" : Number(x).toFixed(2); }
+
+function list(items) {
+  items = (items || []).filter(i => i && String(i).trim());
+  return items.length
+    ? "<ul>" + items.map(i => `<li>${esc(i)}</li>`).join("") + "</ul>"
+    : '<p class="empty">none</p>';
+}
+
+function extractionCard(e, kind) {
+  if (!e) return '<h3>Extraction</h3><p class="empty">No extraction yet.</p>';
+  const sd = e.study_design, m = e.methods, r = e.results, ev = e.evidence;
+  return `
+    <h3>Extraction <span class="meta">(${esc(kind.replace("_", " "))})</span></h3>
+    <h3>Study design</h3>
+    <p>${esc(sd.type)} · population: ${esc(sd.population)} · n = ${esc(sd.sample_size)}</p>
+    <p>Data: ${esc(sd.data_source)} · validation: ${esc(sd.validation)}</p>
+    <p class="evidence">${esc(ev.study_design)}</p>
+    <h3>Methods</h3>
+    <p>${esc(m.approach)}</p>
+    <p>Baselines: ${esc(m.baselines)} · Metrics: ${esc(m.metrics)}</p>
+    <p class="evidence">${esc(ev.methods)}</p>
+    <h3>Results</h3>
+    <p>${esc(r.headline)}</p>
+    <p class="meta">Uncertainty reported: ${r.uncertainty_reported ? "yes" : "no"}</p>
+    <p class="evidence">${esc(ev.results)}</p>
+    <h3>Limitations stated by authors</h3>${list(e.limitations_stated)}
+    <p class="evidence">${esc(ev.limitations_stated)}</p>
+    <h3>Limitations inferred (not from authors)</h3>
+    <div class="inferred">${list(e.limitations_inferred)}</div>
+    <h3>Discussion</h3><p>${esc(e.discussion)}</p>`;
+}
+
+function showPaper(d) {
+  const s = d.scores || {};
+  const label = d.label === 1 ? "labeled relevant" : d.label === 0 ? "labeled not relevant" : "unlabeled";
+  document.getElementById("panel").innerHTML = `
+    <h2>${esc(d.title)}</h2>
+    <p class="meta">${esc(d.year ?? "year unknown")} · ${esc(d.venue || "venue unknown")} ·
+      ${esc(d.citations)} citations · community ${d.community + 1} · ${label}</p>
+    <p class="meta">${esc((d.authors || []).join(", "))}</p>
+    <p><a href="${esc(d.url)}" target="_blank" rel="noopener">Open on Semantic Scholar</a>
+      · note: <code>notes/${esc(d.slug)}.md</code></p>
+    <div class="scores">
+      <div class="score"><b>${fmt(s.llm)}</b><span>LLM</span></div>
+      <div class="score"><b>${fmt(s.bge)}</b><span>BGE</span></div>
+      <div class="score"><b>${fmt(s.minilm)}</b><span>MiniLM</span></div>
+    </div>
+    ${extractionCard(d.extraction, d.source_text_kind || "")}`;
+}
+
+document.getElementById("topic").textContent = DATA.topic;
+
+const cy = cytoscape({
+  container: document.getElementById("cy"),
+  elements: [...DATA.axis, ...DATA.nodes, ...DATA.edges],
+  layout: { name: "preset", fit: true, padding: 40 },
+  wheelSensitivity: 0.3,
+  style: [
+    { selector: "node", style: {
+        "background-color": "data(color)", "width": "data(size)", "height": "data(size)",
+        "border-width": 2, "border-color": css("--bg"),
+    }},
+    { selector: "node.axis", style: {
+        "width": 1, "height": 1, "background-opacity": 0, "border-width": 0,
+        "label": "data(axis)", "color": css("--muted"), "font-size": 14,
+        "text-valign": "bottom", "events": "no",
+    }},
+    { selector: "node:selected", style: { "border-color": css("--text"), "border-width": 3 }},
+    { selector: "edge[kind = 'cites']", style: {
+        "line-color": css("--edge-cites"), "width": 1.5, "opacity": 0.8,
+        "curve-style": "bezier", "target-arrow-shape": "triangle",
+        "target-arrow-color": css("--edge-cites"), "arrow-scale": 0.8,
+    }},
+    { selector: "edge[kind = 'coupling']", style: {
+        "line-color": css("--edge-coupling"), "width": "mapData(weight, 2, 20, 1, 4)",
+        "opacity": 0.35, "curve-style": "haystack",
+    }},
+    { selector: ".hidden", style: { "display": "none" }},
+    { selector: ".faded", style: { "opacity": 0.12 }},
+  ],
+});
+cy.nodes(".axis").ungrabify().unselectify();
+
+cy.on("tap", "node", evt => {
+  const n = evt.target;
+  if (n.hasClass("axis")) return;
+  showPaper(n.data());
+  cy.elements().addClass("faded");
+  n.closedNeighborhood().removeClass("faded");
+  cy.nodes(".axis").removeClass("faded");
+});
+cy.on("tap", evt => { if (evt.target === cy) cy.elements().removeClass("faded"); });
+
+for (const kind of ["cites", "coupling"]) {
+  document.getElementById(`show-${kind}`).addEventListener("change", e => {
+    cy.edges(`[kind = '${kind}']`).toggleClass("hidden", !e.target.checked);
+  });
+}
+</script>
+</body>
+</html>
