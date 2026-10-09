@@ -7,6 +7,8 @@ a second for progress. The pipeline runs in a background thread, so the page sta
 """
 import argparse
 import json
+import subprocess
+import sys
 import threading
 import traceback
 import uuid
@@ -119,6 +121,7 @@ class Handler(BaseHTTPRequestHandler):
                 "key_hint": llm.masked_key(),
                 "key_problem": llm.key_problem(),
                 "env_path": str(config.ROOT / ".env"),
+                "version": VERSION,
             })
         elif self.path == "/api/runs":
             self.send_json(recent_runs())
@@ -178,10 +181,36 @@ def report_key():
     print(messages[status])
 
 
+class Server(ThreadingHTTPServer):
+    # HTTPServer turns on address reuse. On Windows that lets a second copy of the app bind
+    # the same port while the first is still running, and the browser may keep talking to
+    # the old copy. Turning it off makes a second copy fail loudly instead.
+    allow_reuse_address = sys.platform != "win32"
+
+
+def app_version():
+    """Short git commit of the running code, shown on the page so stale copies are obvious."""
+    try:
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=config.ROOT,
+                             capture_output=True, text=True, timeout=5)
+        return out.stdout.strip() or "unknown"
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+
+
+VERSION = app_version()
+
+
 def main(host, port, open_browser):
-    server = ThreadingHTTPServer((host, port), Handler)
+    try:
+        server = Server((host, port), Handler)
+    except OSError:
+        print(f"Port {port} is already in use, probably by another paper-atlas window that is "
+              "still running. Close that window (or press Ctrl+C in it) and try again, or run "
+              f"python app.py --port {port + 1}")
+        sys.exit(1)
     url = f"http://{host}:{port}"
-    print(f"paper-atlas is running at {url}  (Ctrl+C to stop)")
+    print(f"paper-atlas {VERSION} is running at {url}  (Ctrl+C to stop)")
     threading.Thread(target=report_key, daemon=True).start()
     if open_browser:
         webbrowser.open(url)

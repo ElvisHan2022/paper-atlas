@@ -405,7 +405,8 @@
       <ul id="recent-list"></ul>
     </div>
   </main>
-  <footer class="home-foot">Searches PubMed, Semantic Scholar and arXiv · Ranked by MiniLM, BGE and Claude</footer>
+  <footer class="home-foot">Searches PubMed, OpenAlex, medRxiv / bioRxiv, Semantic Scholar, arXiv and ClinicalTrials.gov ·
+    Ranked by MiniLM, BGE and Claude<span id="app-version"></span></footer>
 </section>
 
 <!-- ================= PROGRESS ================= -->
@@ -552,6 +553,7 @@ async function loadOptions() {
     return;
   }
   state.options = o;
+  if (o.version) $("#app-version").textContent = ` · version ${o.version}`;
   state.lens = o.lenses[store.get("lens", "balanced")] ? store.get("lens", "balanced") : "balanced";
   // Remember what was switched OFF, so sources added in a later version start switched on.
   const off = store.get("sources_off", []);
