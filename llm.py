@@ -29,11 +29,12 @@ def api_key():
 
 
 def key_problem():
-    """A plain-English reason the key can't work, if its shape already gives it away."""
+    """Extra hint for a rejected key. (Valid keys come in more than one prefix, so the
+    prefix alone is never treated as proof the key is wrong.)"""
     key = api_key()
-    if key and not key.startswith("sk-ant-api"):
-        return (f"This doesn't look like an Anthropic API key: it starts with {key[:10]}…, but API "
-                "keys start with sk-ant-api03-. Create one at console.anthropic.com → API Keys.")
+    if key and not key.startswith("sk-ant-"):
+        return ("This doesn't look like an Anthropic key (they start with sk-ant-). "
+                "Create one at console.anthropic.com → API Keys.")
     return None
 
 

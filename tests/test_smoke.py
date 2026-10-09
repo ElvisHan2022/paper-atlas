@@ -319,12 +319,13 @@ def test_cited_numbers():
     assert cited_numbers("A [1] and B [2, 7] but not 2023 or [x].") == [1, 2, 7]
 
 
-def test_key_problem_spots_non_api_keys(monkeypatch):
+def test_key_problem_only_flags_keys_that_are_clearly_not_anthropic(monkeypatch):
     import llm
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-usr-1234567890abcdefghijAAA.")
-    assert "sk-ant-api03-" in llm.key_problem()
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-api03-abcdefghijklmnopqrstuvwxyz")
-    assert llm.key_problem() is None
+    for good in ("sk-ant-usr-1234567890abcdefghijAAA", "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"):
+        monkeypatch.setenv("ANTHROPIC_API_KEY", good)
+        assert llm.key_problem() is None       # both prefixes are accepted by Anthropic
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-proj-abcdefghijklmnopqrstuvwxyz")
+    assert "sk-ant-" in llm.key_problem()
 
 
 def test_parse_europepmc_preprints():
