@@ -223,6 +223,7 @@ def test_venue_and_evidence_tags():
     ("sk-ant-api03-abcdefghijklmnopqrstuvwxyz", "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"),
     ('  "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"  ', "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"),
     ("'sk-ant-api03-abcdefghijklmnopqrstuvwxyz'", "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"),
+    ("sk-ant-api03-abcdefghijklmnopqrstuvwxyz.", "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"),
     ("sk-ant-...", None),          # the placeholder from .env.example
     ("", None),
 ])
@@ -316,3 +317,11 @@ def test_llm_cache_reuses_valid_answers(monkeypatch, tmp_path):
 def test_cited_numbers():
     from pipeline import cited_numbers
     assert cited_numbers("A [1] and B [2, 7] but not 2023 or [x].") == [1, 2, 7]
+
+
+def test_key_problem_spots_non_api_keys(monkeypatch):
+    import llm
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-usr-1234567890abcdefghijAAA.")
+    assert "sk-ant-api03-" in llm.key_problem()
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-api03-abcdefghijklmnopqrstuvwxyz")
+    assert llm.key_problem() is None

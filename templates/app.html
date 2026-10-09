@@ -561,8 +561,9 @@ async function loadOptions() {
 function showKeyNotice(o) {
   const n = $("#key-notice");
   if (o.key_status === "rejected") {
-    n.innerHTML = `<b>Anthropic rejected the API key in .env</b> (${esc(o.key_hint)}). Make a new key at
-      console.anthropic.com, paste it after <code>ANTHROPIC_API_KEY=</code> in <code>${esc(o.env_path || ".env")}</code>, and restart
+    n.innerHTML = `<b>Anthropic rejected the API key in .env</b> (${esc(o.key_hint)}).
+      ${o.key_problem ? esc(o.key_problem) : "Make a new key at console.anthropic.com."}
+      Paste it after <code>ANTHROPIC_API_KEY=</code> in <code>${esc(o.env_path || ".env")}</code>, and restart
       <code>python app.py</code>. Until then, searches use the local models only.`;
     n.hidden = false;
   } else {

@@ -17,11 +17,24 @@ KEY_STATUS = "unchecked"   # set by check_key(): ok, rejected, missing, unreacha
 
 
 def api_key():
-    """ANTHROPIC_API_KEY from .env, forgiving stray quotes and spaces; None if unusable."""
+    """ANTHROPIC_API_KEY from .env, forgiving stray quotes, spaces and a copied full stop.
+
+    Returns None if unusable. Keys never contain "." or ",", so trailing ones are punctuation
+    picked up while copying.
+    """
     key = (os.getenv("ANTHROPIC_API_KEY") or "").strip().strip('"').strip("'").strip()
     if not key or key.endswith("...") or key in ("sk-ant-", "your-key-here"):
         return None   # missing, or still the placeholder from .env.example
-    return key
+    return key.rstrip(".,;")
+
+
+def key_problem():
+    """A plain-English reason the key can't work, if its shape already gives it away."""
+    key = api_key()
+    if key and not key.startswith("sk-ant-api"):
+        return (f"This doesn't look like an Anthropic API key: it starts with {key[:10]}…, but API "
+                "keys start with sk-ant-api03-. Create one at console.anthropic.com → API Keys.")
+    return None
 
 
 def masked_key():

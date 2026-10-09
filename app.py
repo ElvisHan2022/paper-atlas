@@ -117,6 +117,7 @@ class Handler(BaseHTTPRequestHandler):
                 "has_llm": llm.has_key(),
                 "key_status": llm.KEY_STATUS,
                 "key_hint": llm.masked_key(),
+                "key_problem": llm.key_problem(),
                 "env_path": str(config.ROOT / ".env"),
             })
         elif self.path == "/api/runs":
@@ -168,9 +169,10 @@ def report_key():
         "ok": f"Anthropic API key: OK ({llm.masked_key()})",
         "missing": (f"Anthropic API key: not found. Add a line ANTHROPIC_API_KEY=<your key> to {env}. "
                     "Searches will use the local models only."),
-        "rejected": (f"Anthropic API key: REJECTED ({llm.masked_key()}). Make a new key at "
-                     f"console.anthropic.com, paste it into {env}, and restart. Searches will use "
-                     "the local models only until then."),
+        "rejected": (f"Anthropic API key: REJECTED ({llm.masked_key()}). "
+                     + (llm.key_problem() or "Make a new key at console.anthropic.com.")
+                     + f" Paste it into {env} and restart. Until then, searches use the local "
+                     "models only."),
         "unreachable": "Anthropic API key: couldn't check it (no connection?). Will try anyway.",
     }
     print(messages[status])
