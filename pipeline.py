@@ -303,6 +303,7 @@ def keyword_names(texts, labels, skip=()):
     m = vec.fit_transform(texts)
     words = vec.get_feature_names_out()
     skip = {w.lower() for w in skip} | {"study", "studies", "paper", "results", "using", "based"}
+    skip |= {w + "s" for w in skip} | {w[:-1] for w in skip if w.endswith("s")}  # llm ~ llms
     names = []
     for c in range(labels.max() + 1):
         weights = np.asarray(m[labels == c].mean(axis=0)).ravel()
@@ -364,6 +365,7 @@ def paper_card(p):
     """The fields the UI needs, from a merged search result (see sources.py)."""
     ext = p.get("externalIds") or {}
     types = p.get("publicationTypes") or []
+    kind = sources.venue_type(p.get("venue"), p.get("sources") or [], types)
     return {
         "paper_id": p["paperId"], "title": p["title"], "abstract": p["abstract"],
         "year": p.get("year"), "venue": p.get("venue") or "",
@@ -372,8 +374,8 @@ def paper_card(p):
         "pdf_url": (p.get("openAccessPdf") or {}).get("url"), "doi": ext.get("DOI"),
         "url": p.get("url") or f"https://www.semanticscholar.org/paper/{p['paperId']}",
         "sources": p.get("sources") or [p.get("source", "semantic_scholar")],
-        "venue_type": sources.venue_type(p.get("venue"), p.get("sources") or [], types),
-        "evidence": sources.evidence_tags(types),
+        "venue_type": kind,
+        "evidence": [t for t in sources.evidence_tags(types) if t != kind],  # no "Preprint" twice
         "publicationTypes": types,
     }
 

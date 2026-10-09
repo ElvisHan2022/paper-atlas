@@ -14,6 +14,8 @@ import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import xml.etree.ElementTree as ET
 
+import requests
+
 import config
 import fetch
 
@@ -297,43 +299,69 @@ SEARCHERS = {"semantic_scholar": s2_search, "openalex": openalex_search,
              "pubmed": pubmed_search, "preprints": preprint_search, "arxiv": arxiv_search}
 
 
-def dedupe_key(p):
-    """Same DOI, or failing that the same title with punctuation and case removed."""
-    doi = ((p.get("externalIds") or {}).get("DOI") or "").lower().strip()
-    return "doi:" + doi if doi else "title:" + re.sub(r"[^a-z0-9]", "", (p["title"] or "").lower())[:150]
+def dedupe_keys(p):
+    """Every identity a paper can be matched on: DOI, arXiv id, and (if long enough) title.
+
+    One paper often arrives as several records: the journal version, the arXiv version
+    (DOI 10.48550/arXiv.<id>), and an arXiv API record with no DOI at all. Matching on any
+    shared key catches all of them. Short titles ("Introduction") are too generic to trust.
+    """
+    keys = []
+    ext = p.get("externalIds") or {}
+    doi = (ext.get("DOI") or "").lower().strip()
+    if doi:
+        keys.append("doi:" + doi)
+        arxiv_doi = re.match(r"10\.48550/arxiv\.(.+)", doi)
+        if arxiv_doi:
+            keys.append("arxiv:" + re.sub(r"v\d+$", "", arxiv_doi.group(1)))
+    if ext.get("ArXiv"):
+        keys.append("arxiv:" + re.sub(r"v\d+$", "", str(ext["ArXiv"]).lower()))
+    title = re.sub(r"[^a-z0-9]", "", (p.get("title") or "").lower())[:150]
+    if len(title) >= 20:
+        keys.append("title:" + title)
+    return keys or ["id:" + str(p.get("paperId"))]
 
 
 def merge(results_by_source):
     """Combine lists from several sources, keeping one record per paper.
 
     Earlier sources win ties (Semantic Scholar and OpenAlex have citation counts); later
-    ones fill gaps like a missing abstract, PDF link, venue, or publication types.
-    `sources` lists everywhere the paper was found.
+    ones fill gaps like a missing abstract, PDF link, venue, or publication types. A
+    journal venue replaces a preprint one. `sources` lists everywhere the paper was found.
     """
-    merged, order = {}, []
+    records, index = [], {}          # index: any dedupe key -> position in records
     preferred = ["semantic_scholar", "openalex", "pubmed", "preprints", "arxiv"]
     for source in preferred + [s for s in results_by_source if s not in preferred]:
         for p in results_by_source.get(source, []):
             if not p.get("title") or not p.get("abstract"):
                 continue
-            key = dedupe_key(p)
-            if key not in merged:
-                merged[key] = {**p, "sources": [source]}
-                order.append(key)
-                continue
-            base = merged[key]
-            base["sources"].append(source)
-            for field in ("abstract", "year", "venue", "openAccessPdf", "citationCount"):
-                if not base.get(field) and p.get(field):
-                    base[field] = p[field]
-            if base.get("venue") == "arXiv" and p.get("venue") not in (None, "", "arXiv"):
-                base["venue"] = p["venue"]
-            base["publicationTypes"] = list(dict.fromkeys(
-                (base.get("publicationTypes") or []) + (p.get("publicationTypes") or [])))
-            ext = base.setdefault("externalIds", {}) or {}
-            for k, v in (p.get("externalIds") or {}).items():
-                ext.setdefault(k, v)
-    return [merged[k] for k in order]
+            keys = dedupe_keys(p)
+            hit = next((index[k] for k in keys if k in index), None)
+            if hit is None:
+                records.append({**p, "sources": [source]})
+                hit = len(records) - 1
+            else:
+                fill_gaps(records[hit], p, source)
+            for k in keys:
+                index.setdefault(k, hit)
+    return records
+
+
+def fill_gaps(base, p, source):
+    if source not in base["sources"]:
+        base["sources"].append(source)
+    for field in ("abstract", "year", "venue", "openAccessPdf", "citationCount"):
+        if not base.get(field) and p.get(field):
+            base[field] = p[field]
+    if venue_type(base.get("venue")) in ("Preprint", "Unknown venue") and \
+            venue_type(p.get("venue")) not in ("Preprint", "Unknown venue"):
+        base["venue"] = p["venue"]       # prefer where it was published over the preprint
+    base["publicationTypes"] = list(dict.fromkeys(
+        (base.get("publicationTypes") or []) + (p.get("publicationTypes") or [])))
+    ext = base.setdefault("externalIds", {}) or {}
+    for k, v in (p.get("externalIds") or {}).items():
+        if v and not ext.get(k):
+            ext[k] = v
 
 
 def search_all(query, sources, limits=None):
@@ -351,8 +379,23 @@ def search_all(query, sources, limits=None):
             try:
                 results[source] = future.result()
             except Exception as e:
-                errors[source] = str(e)
+                errors[source] = explain_source_error(source, e)
     return merge(results), {s: len(v) for s, v in results.items()}, errors
+
+
+def explain_source_error(source, e):
+    """Turn a failed request into a short reason a person can act on."""
+    text = str(e)
+    if "429" in text or "Gave up" in text:
+        reason = "it is rate-limiting requests right now (its free tier is busy)"
+        if source == "semantic_scholar":
+            reason += "; a free S2_API_KEY in .env avoids this"
+        return reason
+    if "403" in text:
+        return "it refused the request (403)"
+    if isinstance(e, (requests.ConnectionError, requests.Timeout)):
+        return "no connection to it (network or firewall)"
+    return text[:200]
 
 
 # ---------------- what kind of paper is this? ----------------

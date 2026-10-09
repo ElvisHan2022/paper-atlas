@@ -755,7 +755,8 @@ function renderResults(r) {
   const failed = Object.entries(src.errors || {});
   $("#res-criteria").innerHTML = `<b>Relevance criteria:</b> ${esc(r.criteria)}` +
     (r.lens && r.lens.criteria ? `<br><b>${esc(r.lens.label)} lens:</b> ${esc(r.lens.criteria)}` : "") +
-    (failed.length ? `</p><p class="warn"><b>Couldn't reach ${failed.map(([k]) => esc(src.labels[k] || k)).join(", ")}</b>; results come from the other sources.` : "");
+    (failed.length ? `</p><p class="warn">${failed.map(([k, why]) => `<b>Couldn't use ${esc(src.labels[k] || k)}</b>: ${esc(why)}.`).join("<br>")}
+      Results come from the other sources.` : "");
   $("#mini-q").value = "";
   renderPapers(r); renderReview(r); renderTopics(r); renderTrials(r); renderRubric(r);
   show("results");
@@ -797,7 +798,7 @@ function renderPapers(r) {
         <div class="byline">${esc(authors)}${authors ? " · " : ""}${esc(p.venue || "Venue unknown")} · ${esc(p.year ?? "n.d.")}${p.citations != null ? ` · ${Number(p.citations).toLocaleString()} citations` : ""}</div>
         <div class="tags">
           ${(p.evidence || []).map(t => `<span class="tag evidence">${esc(t)}</span>`).join("")}
-          ${p.venue_type ? `<span class="tag">${esc(p.venue_type)}</span>` : ""}
+          ${p.venue_type && p.venue_type !== "Unknown venue" ? `<span class="tag">${esc(p.venue_type)}</span>` : ""}
           ${level ? `<span class="tag level">Relevance <b>${p.level}/5</b> ${esc(level.label)}</span>` : (r.has_llm === false ? "" : `<span class="tag">Relevance <b>–</b></span>`)}
           ${p.lens_level && r.lens ? `<span class="tag level">${esc(r.lens.label)} <b>${p.lens_level}/5</b></span>` : ""}
           <span class="tag">BGE <b>${fmt(p.scores.bge)}</b></span>
@@ -1046,7 +1047,7 @@ function renderRubric(r) {
       <div class="table-scroll"><table><thead><tr><th>#</th><th>Paper</th><th>BGE</th><th>MiniLM</th><th class="hide-sm">Evidence</th></tr></thead>
       <tbody>${r.papers.map(p => `<tr><td class="num">${p.rank}</td><td>${esc(p.title)}</td>
         <td class="num">${fmt(p.scores.bge)}</td><td class="num">${fmt(p.scores.minilm)}</td>
-        <td class="hide-sm">${esc([p.venue_type, ...(p.evidence || [])].filter(Boolean).join(", "))}</td></tr>`).join("")}</tbody></table></div>
+        <td class="hide-sm">${esc([p.venue_type, ...(p.evidence || [])].filter(x => x && x !== "Unknown venue").join(", "))}</td></tr>`).join("")}</tbody></table></div>
       ${runLog(r)}`;
     return;
   }
@@ -1079,7 +1080,7 @@ function renderRubric(r) {
     <div class="table-scroll"><table>
       <thead><tr><th>#</th><th>Paper</th><th>Relevance</th>${lens ? `<th>Lens</th>` : ""}<th class="hide-sm">BGE</th><th class="hide-sm">MiniLM</th><th>Why</th></tr></thead>
       <tbody>${r.papers.map(p => `<tr>
-        <td class="num">${p.rank}</td><td>${esc(p.title)}<div style="color:var(--faint);font-size:12.5px">${esc([p.venue_type, ...(p.evidence || [])].filter(Boolean).join(" · "))}</div></td>
+        <td class="num">${p.rank}</td><td>${esc(p.title)}<div style="color:var(--faint);font-size:12.5px">${esc([p.venue_type, ...(p.evidence || [])].filter(x => x && x !== "Unknown venue").join(" · "))}</div></td>
         <td class="num">${p.level ? `<span class="level-pill">${p.level}</span>` : "–"}</td>
         ${lens ? `<td class="num">${p.lens_level ? `<span class="level-pill">${p.lens_level}</span>` : "–"}</td>` : ""}
         <td class="num hide-sm">${fmt(p.scores.bge)}</td><td class="num hide-sm">${fmt(p.scores.minilm)}</td>

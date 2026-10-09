@@ -349,3 +349,51 @@ def test_parse_trials():
     assert a["sponsor"] == "University Health Network" and a["interventions"] == ["Sepsis prediction alert"]
     assert a["url"] == "https://clinicaltrials.gov/study/NCT05123456" and not a["has_results"]
     assert b["status"] == "Completed" and b["has_results"] and b["sponsor"] is None and b["conditions"] == []
+
+
+def test_merge_catches_journal_and_arxiv_versions_of_one_paper():
+    """Real case: 'Can LLM be a Personalized Judge?' came back three times."""
+    from sources import merge
+    title = "Can LLM be a Personalized Judge?"
+    openalex_journal = {"paperId": "OPENALEX:W1", "title": title, "abstract": "a", "venue": "",
+                        "citationCount": 22, "externalIds": {"DOI": None}, "publicationTypes": []}
+    openalex_arxiv = {"paperId": "OPENALEX:W2", "title": title, "abstract": "a",
+                      "venue": "arXiv (Cornell University)", "citationCount": 2,
+                      "externalIds": {"DOI": "10.48550/arXiv.2406.11657"},
+                      "publicationTypes": ["Preprint"]}
+    arxiv = {"paperId": "ARXIV:2406.11657", "title": title + " ", "abstract": "a", "venue": "arXiv",
+             "externalIds": {"DOI": None, "ArXiv": "2406.11657"}, "publicationTypes": ["Preprint"]}
+    other = {"paperId": "OPENALEX:W3", "title": "A Survey on LLM-as-a-Judge", "abstract": "b",
+             "externalIds": {}, "publicationTypes": []}
+    merged = merge({"openalex": [openalex_journal, openalex_arxiv, other], "arxiv": [arxiv]})
+    assert len(merged) == 2
+    judge = merged[0]
+    assert judge["sources"] == ["openalex", "arxiv"] and judge["citationCount"] == 22
+    assert judge["externalIds"]["DOI"] == "10.48550/arXiv.2406.11657"
+    # Short generic titles are never merged on title alone.
+    a = {"paperId": "x", "title": "Introduction", "abstract": "a", "externalIds": {}}
+    b = {"paperId": "y", "title": "Introduction", "abstract": "b", "externalIds": {}}
+    assert len(merge({"openalex": [a, b]})) == 2
+
+
+def test_source_errors_are_explained():
+    import requests
+    from sources import explain_source_error
+    assert "S2_API_KEY" in explain_source_error(
+        "semantic_scholar", RuntimeError("Gave up after repeated 429/5xx: https://..."))
+    assert "network" in explain_source_error("pubmed", requests.ConnectionError("boom"))
+
+
+def test_paper_card_does_not_repeat_preprint():
+    from pipeline import paper_card
+    card = paper_card({"paperId": "A", "title": "t", "abstract": "a", "venue": "arXiv",
+                       "sources": ["arxiv"], "publicationTypes": ["Preprint"]})
+    assert card["venue_type"] == "Preprint" and card["evidence"] == []
+
+
+def test_keyword_names_skip_plural_search_terms():
+    import numpy as np
+    from pipeline import keyword_names
+    texts = ["llms judge human raters agreement"] * 3 + ["llms digital twin simulation"] * 3
+    names = keyword_names(texts, np.array([0, 0, 0, 1, 1, 1]), skip=["llm"])
+    assert all("Llms" not in n for n in names)
