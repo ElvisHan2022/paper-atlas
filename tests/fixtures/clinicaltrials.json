@@ -1,0 +1,28 @@
+{
+  "studies": [
+    {
+      "protocolSection": {
+        "identificationModule": {"nctId": "NCT05123456", "briefTitle": "AI Sepsis Alert to Reduce Time to Antibiotics"},
+        "statusModule": {"overallStatus": "RECRUITING", "startDateStruct": {"date": "2023-04-01"},
+                         "primaryCompletionDateStruct": {"date": "2025-12"}},
+        "sponsorCollaboratorsModule": {"leadSponsor": {"name": "University Health Network"}},
+        "descriptionModule": {"briefSummary": "A stepped-wedge trial of an AI alert across 6 emergency departments."},
+        "conditionsModule": {"conditions": ["Sepsis", "Septic Shock"]},
+        "designModule": {"studyType": "INTERVENTIONAL", "phases": ["NA"],
+                         "enrollmentInfo": {"count": 12000, "type": "ESTIMATED"}},
+        "armsInterventionsModule": {"interventions": [{"type": "DEVICE", "name": "Sepsis prediction alert"}]}
+      },
+      "hasResults": false
+    },
+    {
+      "protocolSection": {
+        "identificationModule": {"nctId": "NCT04000001", "briefTitle": "LLM Discharge Summaries Study"},
+        "statusModule": {"overallStatus": "COMPLETED", "startDateStruct": {"date": "2021-01"},
+                         "primaryCompletionDateStruct": {"date": "2022-06"}},
+        "designModule": {"studyType": "OBSERVATIONAL", "enrollmentInfo": {"count": 300, "type": "ACTUAL"}}
+      },
+      "hasResults": true
+    }
+  ],
+  "nextPageToken": "NF0g5JKBlPkg"
+}

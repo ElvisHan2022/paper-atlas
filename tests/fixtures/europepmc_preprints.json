@@ -1,0 +1,43 @@
+{
+  "version": "6.9",
+  "hitCount": 2,
+  "nextCursorMark": "AoIIP4AAACgyMzQ1Njc=",
+  "request": {"queryString": "(sepsis llm) AND SRC:PPR", "resultType": "core", "pageSize": 2},
+  "resultList": {"result": [
+    {
+      "id": "PPR812345",
+      "source": "PPR",
+      "doi": "10.1101/2024.01.15.24301234",
+      "title": "Large language models for early sepsis recognition: a multi-site retrospective study.",
+      "authorString": "Garcia M, Chen L, Okoye A.",
+      "authorList": {"author": [
+        {"fullName": "Garcia M", "firstName": "Maria", "lastName": "Garcia"},
+        {"fullName": "Chen L", "firstName": "Li", "lastName": "Chen"},
+        {"fullName": "Okoye A", "lastName": "Okoye"}
+      ]},
+      "pubYear": "2024",
+      "abstractText": "<h4>Background</h4>Sepsis is common. <h4>Methods</h4>We evaluated <i>three</i> LLMs at 4 hospitals.",
+      "bookOrReportDetails": {"publisher": "medRxiv", "yearOfPublication": 2024},
+      "pubTypeList": {"pubType": ["Preprint"]},
+      "citedByCount": 4,
+      "firstPublicationDate": "2024-01-16",
+      "fullTextUrlList": {"fullTextUrl": [
+        {"availability": "Free", "availabilityCode": "F", "documentStyle": "html", "site": "Europe_PMC",
+         "url": "https://europepmc.org/abstract/PPR/PPR812345"},
+        {"availability": "Free", "availabilityCode": "F", "documentStyle": "pdf", "site": "medRxiv",
+         "url": "https://www.medrxiv.org/content/10.1101/2024.01.15.24301234v1.full.pdf"}
+      ]}
+    },
+    {
+      "id": "PPR800001",
+      "source": "PPR",
+      "title": "Protein language models predict variant effects",
+      "authorString": "Ito K.",
+      "pubYear": "2023",
+      "abstractText": "We show protein language models generalize.",
+      "bookOrReportDetails": {"publisher": "bioRxiv"},
+      "pubTypeList": {"pubType": ["Preprint"]},
+      "citedByCount": 0
+    }
+  ]}
+}

@@ -325,3 +325,27 @@ def test_key_problem_spots_non_api_keys(monkeypatch):
     assert "sk-ant-api03-" in llm.key_problem()
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-api03-abcdefghijklmnopqrstuvwxyz")
     assert llm.key_problem() is None
+
+
+def test_parse_europepmc_preprints():
+    import json as _json
+    from sources import parse_europepmc, venue_type
+    a, b = parse_europepmc(_json.loads((FIXTURES / "europepmc_preprints.json").read_text(encoding="utf-8")))
+    assert a["paperId"] == "PPR:PPR812345" and a["venue"] == "medRxiv" and a["year"] == 2024
+    assert a["abstract"] == "Background Sepsis is common. Methods We evaluated three LLMs at 4 hospitals."
+    assert a["openAccessPdf"]["url"].endswith(".full.pdf")
+    assert [x["name"] for x in a["authors"]] == ["Maria Garcia", "Li Chen", "Okoye"]
+    assert a["url"] == "https://doi.org/10.1101/2024.01.15.24301234"
+    assert b["venue"] == "bioRxiv" and b["openAccessPdf"] is None and b["url"].endswith("PPR800001")
+    assert venue_type(a["venue"]) == "Preprint" and venue_type(b["venue"]) == "Preprint"
+
+
+def test_parse_trials():
+    import json as _json
+    from sources import parse_trials
+    a, b = parse_trials(_json.loads((FIXTURES / "clinicaltrials.json").read_text(encoding="utf-8")))
+    assert a["nct_id"] == "NCT05123456" and a["status"] == "Recruiting"
+    assert a["study_type"] == "Interventional" and a["phases"] == [] and a["enrollment"] == 12000
+    assert a["sponsor"] == "University Health Network" and a["interventions"] == ["Sepsis prediction alert"]
+    assert a["url"] == "https://clinicaltrials.gov/study/NCT05123456" and not a["has_results"]
+    assert b["status"] == "Completed" and b["has_results"] and b["sponsor"] is None and b["conditions"] == []

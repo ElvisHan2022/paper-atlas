@@ -189,6 +189,99 @@ def parse_openalex(data):
     return out
 
 
+# ---------------- Preprints: medRxiv, bioRxiv, ... via Europe PMC ----------------
+# The bioRxiv/medRxiv API itself only lists by date and category (no keyword search), so we
+# use Europe PMC, which indexes those servers plus Research Square, SSRN and others.
+
+EUROPEPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+
+
+def preprint_search(query, n):
+    """Top-n preprints (medRxiv, bioRxiv, ...) matching the query, with abstracts."""
+    data = fetch.cached_get(EUROPEPMC, {"query": f"({query}) AND SRC:PPR", "format": "json",
+                                        "resultType": "core", "pageSize": min(n, 100)},
+                            "json", 0.2)
+    return parse_europepmc(data or {})
+
+
+def parse_europepmc(data):
+    out = []
+    for r in ((data.get("resultList") or {}).get("result")) or []:
+        if not r.get("id") or not r.get("title"):
+            continue
+        server = (r.get("bookOrReportDetails") or {}).get("publisher") or "Preprint"
+        links = ((r.get("fullTextUrlList") or {}).get("fullTextUrl")) or []
+        pdf = next((u["url"] for u in links if u.get("documentStyle") == "pdf" and u.get("url")), None)
+        authors = [{"name": " ".join(x for x in (a.get("firstName"), a.get("lastName")) if x)
+                    or a.get("fullName")} for a in ((r.get("authorList") or {}).get("author")) or []]
+        abstract = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", r.get("abstractText") or "")).strip()
+        doi = r.get("doi")
+        out.append({
+            "paperId": f"PPR:{r['id']}",
+            "title": r["title"].rstrip("."),
+            "abstract": abstract or None,
+            "year": int(r["pubYear"]) if str(r.get("pubYear") or "")[:4].isdigit() else None,
+            "venue": server,
+            "citationCount": r.get("citedByCount"),
+            "externalIds": {"DOI": doi, "EuropePMC": r["id"]},
+            "openAccessPdf": {"url": pdf} if pdf else None,
+            "authors": [a for a in authors if a["name"]],
+            "publicationTypes": ["Preprint"],
+            "source": "preprints",
+            "url": f"https://doi.org/{doi}" if doi else f"https://europepmc.org/article/PPR/{r['id']}",
+        })
+    return out
+
+
+# ---------------- ClinicalTrials.gov (shown in its own tab, not ranked as papers) ----------------
+
+CLINICALTRIALS = "https://clinicaltrials.gov/api/v2/studies"
+
+
+def trial_search(query, n):
+    data = fetch.cached_get(CLINICALTRIALS, {"query.term": query, "pageSize": n,
+                                             "format": "json"}, "json", 0.3)
+    return parse_trials(data or {})
+
+
+def _pretty(code):
+    """RECRUITING -> Recruiting, NOT_YET_RECRUITING -> Not yet recruiting."""
+    return (code or "").replace("_", " ").capitalize()
+
+
+def parse_trials(data):
+    out = []
+    for study in data.get("studies") or []:
+        ps = study.get("protocolSection") or {}
+        ident = ps.get("identificationModule") or {}
+        if not ident.get("nctId"):
+            continue
+        status = ps.get("statusModule") or {}
+        design = ps.get("designModule") or {}
+        enroll = design.get("enrollmentInfo") or {}
+        phases = [p for p in design.get("phases") or [] if p != "NA"]
+        out.append({
+            "nct_id": ident["nctId"],
+            "title": ident.get("briefTitle") or ident.get("officialTitle") or ident["nctId"],
+            "status": _pretty(status.get("overallStatus")),
+            "study_type": _pretty(design.get("studyType")),
+            "phases": [p.replace("PHASE", "Phase ").replace("EARLY_", "Early ") for p in phases],
+            "enrollment": enroll.get("count"),
+            "enrollment_type": _pretty(enroll.get("type")),
+            "start": (status.get("startDateStruct") or {}).get("date"),
+            "completion": (status.get("primaryCompletionDateStruct") or {}).get("date"),
+            "sponsor": ((ps.get("sponsorCollaboratorsModule") or {}).get("leadSponsor") or {}).get("name"),
+            "conditions": (ps.get("conditionsModule") or {}).get("conditions") or [],
+            "interventions": [i.get("name") for i in
+                              (ps.get("armsInterventionsModule") or {}).get("interventions") or []
+                              if i.get("name")],
+            "summary": (ps.get("descriptionModule") or {}).get("briefSummary"),
+            "has_results": bool(study.get("hasResults")),
+            "url": f"https://clinicaltrials.gov/study/{ident['nctId']}",
+        })
+    return out
+
+
 # ---------------- Semantic Scholar + merging ----------------
 
 def s2_search(query, n):
@@ -201,7 +294,7 @@ def s2_search(query, n):
 
 
 SEARCHERS = {"semantic_scholar": s2_search, "openalex": openalex_search,
-             "pubmed": pubmed_search, "arxiv": arxiv_search}
+             "pubmed": pubmed_search, "preprints": preprint_search, "arxiv": arxiv_search}
 
 
 def dedupe_key(p):
@@ -218,7 +311,7 @@ def merge(results_by_source):
     `sources` lists everywhere the paper was found.
     """
     merged, order = {}, []
-    preferred = ["semantic_scholar", "openalex", "pubmed", "arxiv"]
+    preferred = ["semantic_scholar", "openalex", "pubmed", "preprints", "arxiv"]
     for source in preferred + [s for s in results_by_source if s not in preferred]:
         for p in results_by_source.get(source, []):
             if not p.get("title") or not p.get("abstract"):
