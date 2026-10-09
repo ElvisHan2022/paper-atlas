@@ -19,6 +19,7 @@ Python 3.11, conda env `atlas`, Windows-first (use `pathlib`, no shell-specific 
 - `templates/app.html` the whole UI (plain HTML/CSS/JS, no build step)
 - `evaluate.py`, `label.py`, `graph.py` command-line evaluation and citation map
 - Data (gitignored): `data/atlas.db`, `cache/` (HTTP + LLM answers), `outputs/runs/`
+- `docs/ROADMAP.md` red flags, planned work and build order; read it before larger changes
 
 ## Conventions
 - Plain functions, no classes unless unavoidable. Short docstrings that say why.
