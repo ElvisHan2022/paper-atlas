@@ -10,7 +10,8 @@ Python 3.11, conda env `atlas`, Windows-first (use `pathlib`, no shell-specific 
 
 ## Layout
 - `app.py` web server (stdlib only) → `pipeline.py` runs one search in 4 stages
-- `sources.py` PubMed / OpenAlex / Semantic Scholar / arXiv, merged by DOI or title
+- `sources.py` PubMed / OpenAlex / Europe PMC preprints / Semantic Scholar / arXiv (merged by
+  DOI or title) + ClinicalTrials.gov (own tab, never ranked as papers)
 - `score.py` cross-encoders (MiniLM, BGE) + LLM judge · `extract.py` structured extraction
 - `pipeline.py` review writer + independent verifier + topic clusters + step log
 - `llm.py` the only place that calls the Anthropic API (JSON, retry once, optional cache)

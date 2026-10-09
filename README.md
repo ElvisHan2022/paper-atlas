@@ -20,7 +20,9 @@ python app.py
 
 This opens http://127.0.0.1:8000. Type a topic or a few keywords. Under the search bar you can pick:
 
-- **Sources:** PubMed, OpenAlex (an open index of essentially every journal: Nature, Nature Medicine, Cell, NEJM…), Semantic Scholar, and arXiv. Papers found in more than one are merged by DOI or title.
+- **Sources:**
+  - **Papers:** PubMed, OpenAlex (an open index of essentially every journal: Nature, Nature Medicine, Cell, NEJM…), medRxiv / bioRxiv and other preprint servers (through Europe PMC, because the bioRxiv API has no keyword search), Semantic Scholar, and arXiv. Papers found in more than one are merged by DOI or title.
+  - **ClinicalTrials.gov:** matching registered trials appear in their own **Clinical trials** tab. They aren't mixed into the paper ranking or the review, because a registration says what a team planned to study, not what it found.
 - **Evidence lens:** different journals reward different work, so the lens tells the LLM judge what to value on top of relevance:
   - **Balanced:** relevance only.
   - **Clinical impact:** trials, external validation, deployment and patient outcomes (NEJM, Lancet, JAMA, Nature Medicine).
@@ -30,7 +32,7 @@ This opens http://127.0.0.1:8000. Type a topic or a few keywords. Under the sear
 The search then runs in four stages:
 
 1. **Processing your query.** Claude restates it as a topic and writes relevance criteria.
-2. **Identifying candidate papers.** It searches the chosen sources (up to 80 + 80 + 60 + 25 hits) and merges duplicates.
+2. **Identifying candidate papers.** It searches the chosen sources in parallel (up to 80 + 80 + 60 + 40 + 25 hits) and merges duplicates.
 3. **Scoring the papers.** MiniLM and BGE score every candidate locally; the top 30 go to the LLM judge, which scores relevance (1-5) and, with a lens, lens fit (1-5). The final rank is 60% relevance + 40% lens fit.
 4. **Finishing scoring.** It extracts the top 10, writes the review, has an **independent checker** audit every cited claim, and groups all candidates into topics.
 
@@ -47,11 +49,12 @@ Two rules from that guidance shape the rest:
 - **The writer never grades its own work.** The review is audited by a separate call that didn't write it. That checker sees only the papers' abstracts and evidence quotes, and marks each claim supported, partly supported or not supported.
 - **Failure is cheap.** Every step is logged to `outputs/runs/<run>.log.jsonl` as it happens, and HTTP and LLM answers are cached, so re-running a failed search replays the finished steps for free. The log is shown at the bottom of the Scoring rubric tab.
 
-Results open in four tabs:
+Results open in five tabs:
 - **Candidate papers:** the top 10, with scores, the judge's reasoning, evidence type (RCT, meta-analysis…) and venue type.
 - **Systematic review:** five sections (study design, methods, results, limitations, discussion), with every claim linked to its papers and marked by the independent check.
 - **Topic clusters:** a line chart of papers per topic over time.
-- **Scoring rubric:** how the papers were ranked.
+- **Clinical trials:** registered studies from ClinicalTrials.gov, with status, phase, enrollment and whether results are posted.
+- **Scoring rubric:** how the papers were ranked, plus the step log for the search.
 
 Finished searches are saved in `outputs/runs/` and listed under "Recent searches". A search costs a few cents with Haiku.
 
