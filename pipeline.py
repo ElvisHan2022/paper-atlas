@@ -450,8 +450,10 @@ def _run(query, report, source_names, lens_key):
     if len(query) < 3:
         raise PipelineError("Type a topic or a few keywords (at least 3 characters).")
     source_names = [s for s in (source_names or list(config.SOURCES)) if s in config.SOURCES]
-    if not source_names:
-        raise PipelineError("Pick at least one source to search.")
+    want_trials = config.TRIAL_SOURCE in source_names
+    paper_sources = [s for s in source_names if s != config.TRIAL_SOURCE]
+    if not paper_sources:
+        raise PipelineError("Pick at least one paper source (ClinicalTrials.gov alone only finds trials).")
     lens = config.LENSES.get(lens_key) or config.LENSES["balanced"]
     has_llm = llm.has_key()
     cost = 0.0
@@ -473,8 +475,19 @@ def _run(query, report, source_names, lens_key):
     # 2) Identifying candidate papers
     names = ", ".join(config.SOURCES[s] for s in source_names)
     report(1, 0.1, f"Searching {names}")
-    raw, counts, errors = sources.search_all(query, source_names)
+    # Trials and papers are independent, so the registry is searched while the papers are.
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        trials_job = pool.submit(sources.trial_search, query, config.TRIALS_LIMIT) if want_trials else None
+        raw, counts, errors = sources.search_all(query, paper_sources)
+        trials, trials_error = None, None
+        if trials_job:
+            try:
+                trials = trials_job.result()
+            except Exception as e:
+                trials, trials_error = [], str(e)
     log("search", counts=counts, errors=errors, merged=len(raw))
+    if want_trials:
+        log("trials", found=len(trials), error=trials_error)
     if errors and not counts:
         detail = "; ".join(f"{config.SOURCES[s]}: {e}" for s, e in errors.items())
         raise PipelineError(f"Could not reach any source ({detail}). Check your connection and "
@@ -581,6 +594,7 @@ def _run(query, report, source_names, lens_key):
         "has_llm": has_llm,
         "sources": {"searched": source_names, "counts": counts, "errors": errors,
                     "labels": config.SOURCES},
+        "trials": trials, "trials_error": trials_error,
         "lens": {"key": lens_key if lens_key in config.LENSES else "balanced", **lens},
         "lens_weight": config.LENS_WEIGHT,
         "models": {"minilm": config.CROSS_ENCODERS["minilm"],

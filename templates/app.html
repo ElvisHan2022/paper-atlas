@@ -291,6 +291,13 @@
   .claim .verdict.unsupported { color: var(--error); }
   .claim .why { grid-column: 2; color: var(--muted); font-size: 13px; }
   .runlog td:first-child { color: var(--faint); }
+  .trial { padding: 18px 0; border-bottom: 1px solid var(--border); }
+  .trial h3 { margin: 0 0 4px; font-size: 16.5px; line-height: 1.35; font-weight: 600; }
+  .trial h3 a { color: var(--text); text-decoration: none; }
+  .trial h3 a:hover { color: var(--accent); text-decoration: underline; }
+  .trial .byline { color: var(--muted); font-size: 14px; }
+  .tag.status-active { color: var(--good); border-color: var(--good); }
+  .tag.status-stopped { color: var(--error); border-color: var(--error); }
 
   /* chart */
   .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 12px; font-size: 14px; }
@@ -458,11 +465,13 @@
       <button class="tab" role="tab" id="tab-papers" aria-controls="panel-papers" data-tab="papers">Candidate papers <span class="count">10</span></button>
       <button class="tab" role="tab" id="tab-review" aria-controls="panel-review" data-tab="review">Systematic review</button>
       <button class="tab" role="tab" id="tab-topics" aria-controls="panel-topics" data-tab="topics">Topic clusters</button>
+      <button class="tab" role="tab" id="tab-trials" aria-controls="panel-trials" data-tab="trials">Clinical trials <span class="count">0</span></button>
       <button class="tab" role="tab" id="tab-rubric" aria-controls="panel-rubric" data-tab="rubric">Scoring rubric</button>
     </div>
     <div class="panel" role="tabpanel" id="panel-papers" aria-labelledby="tab-papers" hidden></div>
     <div class="panel" role="tabpanel" id="panel-review" aria-labelledby="tab-review" hidden></div>
     <div class="panel" role="tabpanel" id="panel-topics" aria-labelledby="tab-topics" hidden></div>
+    <div class="panel" role="tabpanel" id="panel-trials" aria-labelledby="tab-trials" hidden></div>
     <div class="panel" role="tabpanel" id="panel-rubric" aria-labelledby="tab-rubric" hidden></div>
   </div>
 </section>
@@ -544,8 +553,10 @@ async function loadOptions() {
   }
   state.options = o;
   state.lens = o.lenses[store.get("lens", "balanced")] ? store.get("lens", "balanced") : "balanced";
-  const saved = store.get("sources", Object.keys(o.sources)).filter(s => o.sources[s]);
-  state.sources = saved.length ? saved : Object.keys(o.sources);
+  // Remember what was switched OFF, so sources added in a later version start switched on.
+  const off = store.get("sources_off", []);
+  const on = Object.keys(o.sources).filter(s => !off.includes(s));
+  state.sources = on.length ? on : Object.keys(o.sources);
   showKeyNotice(o);
   if (o.key_status === "unchecked") setTimeout(async () => {  // the server checks the key at startup
     try { const again = await (await fetch("/api/options")).json(); state.options = again; showKeyNotice(again); } catch {}
@@ -602,7 +613,7 @@ $("#source-toggles").addEventListener("click", e => {
   if (!on && state.sources.length === 1) { $("#form-error").textContent = "Keep at least one source."; return; }
   b.setAttribute("aria-pressed", on);
   state.sources = [...document.querySelectorAll("#source-toggles [aria-pressed=true]")].map(x => x.dataset.source);
-  store.set("sources", state.sources);
+  store.set("sources_off", Object.keys(state.options.sources).filter(s => !state.sources.includes(s)));
   $("#form-error").textContent = "";
 });
 
@@ -736,7 +747,7 @@ function renderResults(r) {
   $("#res-meta").innerHTML = [
     `Search: “${esc(r.query)}”`,
     r.lens ? `<b style="color:var(--text)">${esc(r.lens.label)} lens</b>` : "",
-    found ? `Found: ${found}` : "",
+    found ? `Found: ${found}` + (Array.isArray(r.trials) ? ` · ${r.trials.length} trials` : "") : "",
     `${r.n_candidates} candidates` + (r.n_shortlisted ? ` · ${r.n_shortlisted} judged by the LLM` : ""),
     r.has_llm === false ? "Local models only" : `$${Number(r.cost_usd).toFixed(3)} in API calls`,
     esc(ago(r.created_at)),
@@ -746,7 +757,7 @@ function renderResults(r) {
     (r.lens && r.lens.criteria ? `<br><b>${esc(r.lens.label)} lens:</b> ${esc(r.lens.criteria)}` : "") +
     (failed.length ? `</p><p class="warn"><b>Couldn't reach ${failed.map(([k]) => esc(src.labels[k] || k)).join(", ")}</b>; results come from the other sources.` : "");
   $("#mini-q").value = "";
-  renderPapers(r); renderReview(r); renderTopics(r); renderRubric(r);
+  renderPapers(r); renderReview(r); renderTopics(r); renderTrials(r); renderRubric(r);
   show("results");
   selectTab("review");
 }
@@ -757,7 +768,7 @@ document.querySelector(".tabs").addEventListener("click", e => {
 });
 document.querySelector(".tabs").addEventListener("keydown", e => {
   if (!["ArrowLeft", "ArrowRight"].includes(e.key)) return;
-  const tabs = [...document.querySelectorAll(".tab")];
+  const tabs = [...document.querySelectorAll(".tab")].filter(t => !t.hidden);
   const i = tabs.indexOf(document.activeElement);
   const next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
   next.focus(); selectTab(next.dataset.tab);
@@ -990,6 +1001,39 @@ window.addEventListener("resize", () => {
   resizeTimer = setTimeout(() => { if (!$("#panel-topics").hidden && state.result) drawChart(state.result); }, 120);
 });
 
+function renderTrials(r) {
+  const tab = $("#tab-trials");
+  tab.hidden = !Array.isArray(r.trials);          // hidden when ClinicalTrials.gov wasn't searched
+  if (tab.hidden) return;
+  tab.querySelector(".count").textContent = r.trials.length;
+  if (!r.trials.length) {
+    $("#panel-trials").innerHTML = `<div class="empty-state"><h2>No registered trials found</h2>
+      <p>${r.trials_error ? `ClinicalTrials.gov couldn't be reached (${esc(r.trials_error)}).`
+         : "ClinicalTrials.gov had no studies matching this search. Shorter keywords (a condition plus an intervention) work best there."}</p></div>`;
+    return;
+  }
+  const active = ["Recruiting", "Not yet recruiting", "Enrolling by invitation", "Active not recruiting"];
+  const stopped = ["Terminated", "Withdrawn", "Suspended"];
+  $("#panel-trials").innerHTML = `
+    <p class="method" style="margin-top:0">Registered studies from ClinicalTrials.gov that match your search. They are listed
+      as the registry ranks them and are <b>not</b> part of the paper ranking or the review: a registration says what a
+      team planned to study, not what it found.</p>
+    ${r.trials.map(t => `<article class="trial">
+      <h3><a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.title)}</a></h3>
+      <div class="byline">${esc(t.nct_id)}${t.sponsor ? " · " + esc(t.sponsor) : ""}${t.start ? " · started " + esc(t.start) : ""}${t.completion ? " · primary completion " + esc(t.completion) : ""}</div>
+      <div class="tags">
+        <span class="tag ${active.includes(t.status) ? "status-active" : stopped.includes(t.status) ? "status-stopped" : ""}">${esc(t.status || "Status unknown")}</span>
+        ${t.study_type ? `<span class="tag">${esc(t.study_type)}</span>` : ""}
+        ${t.phases.map(ph => `<span class="tag">${esc(ph)}</span>`).join("")}
+        ${t.enrollment != null ? `<span class="tag"><b>${Number(t.enrollment).toLocaleString()}</b> ${t.enrollment_type === "Estimated" ? "planned" : "enrolled"}</span>` : ""}
+        ${t.has_results ? `<span class="tag evidence">Results posted</span>` : ""}
+        ${t.conditions.slice(0, 3).map(c => `<span class="tag">${esc(c)}</span>`).join("")}
+      </div>
+      ${t.interventions.length ? `<p class="rationale">Intervention: ${esc(t.interventions.join(", "))}</p>` : ""}
+      ${t.summary ? `<details class="abstract"><summary>Summary</summary><p>${esc(t.summary)}</p></details>` : ""}
+    </article>`).join("")}`;
+}
+
 function renderRubric(r) {
   const bar = (count, max) => `<div style="display:flex;align-items:center;gap:8px"><div class="level-bar" style="width:${Math.round(count / Math.max(1, max) * 90)}px"></div>${count}</div>`;
   const lens = r.lens && r.lens.criteria ? r.lens : null;
@@ -1046,7 +1090,7 @@ function renderRubric(r) {
 }
 
 const STEP_NAMES = { start: "Started", query: "Understood the query", search: "Searched sources", rank: "Ranked with a local model",
-  judge: "LLM judge", extract: "Extracted study details", review: "Wrote the review", verify: "Independent check",
+  judge: "LLM judge", trials: "Searched ClinicalTrials.gov", extract: "Extracted study details", review: "Wrote the review", verify: "Independent check",
   clusters: "Grouped into topics", done: "Finished", error: "Stopped with an error" };
 function runLog(r) {
   if (!r.log || !r.log.length) return "";
