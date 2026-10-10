@@ -18,6 +18,7 @@ import db
 import extract
 import landscape
 import llm
+import opportunities
 import score
 import sources
 
@@ -256,6 +257,23 @@ def verify_review(review, papers):
     return review, cost
 
 
+def verify_opportunities(opps, papers):
+    """Audit each gap's cited argument in parallel, exactly as the review is audited."""
+    by_rank = {p["rank"]: p for p in papers}
+    cost = 0.0
+    sections = opportunities.check_sections(opps)
+    with ThreadPoolExecutor(max_workers=len(sections)) as pool:
+        futures = [pool.submit(verify_section, sec, by_rank) for sec in sections]
+        for gap, future in zip(opps["gaps"], futures):
+            check, stats = future.result()
+            gap["check"] = check
+            cost += stats.get("cost_usd", 0.0)
+    claims = [c for g in opps["gaps"] for c in g["check"]["claims"]]
+    opps["verification"] = {v: sum(1 for c in claims if c["verdict"] == v) for v in VERDICTS}
+    opps["verification"].update(total=len(claims), model=config.VERIFY_MODEL)
+    return opps, cost
+
+
 _embedder = None
 
 
@@ -328,6 +346,13 @@ def name_clusters(topic, titles_by_cluster, texts, labels):
     return keyword_names(texts, labels, re.findall(r"[a-z]+", topic.lower())), stats
 
 
+def recency(years, this_year):
+    """How much of a cluster is recent: a small cluster that is mostly new work is often
+    where the open questions are."""
+    recent = sum(1 for y in years if y and y > this_year - config.RECENT_YEARS)
+    return {"recent": recent, "recent_share": round(recent / len(years), 3) if years else 0.0}
+
+
 def topic_clusters(topic, candidates, top_ids, use_llm=True):
     """Cluster every candidate by meaning; chart = cumulative papers per cluster by year."""
     texts = [score.paper_text(p) for p in candidates]
@@ -342,12 +367,14 @@ def topic_clusters(topic, candidates, top_ids, use_llm=True):
 
     years = [p["year"] for p in candidates if p["year"]]
     span = list(range(min(years), max(years) + 1)) if years else []
+    this_year = datetime.now(timezone.utc).year
     series = []
     for i in range(k):
         members = [p for p, c in zip(candidates, labels) if c == i]
         per_year = [sum(1 for p in members if p["year"] == y) for y in span]
         series.append({
             "cluster": i, "name": names[i], "size": len(members),
+            **recency([p["year"] for p in members], this_year),
             "points": [{"year": y, "count": int(c)}
                        for y, c in zip(span, np.cumsum(per_year).tolist())],
             "top_papers": [p["paper_id"] for p in members if p["paper_id"] in top_ids],
@@ -556,7 +583,7 @@ def _run(query, report, source_names, lens_key):
     if has_llm:
         report(3, 0.05, f"Extracting study details from the top {len(top)} papers")
         extracted = extract_many(top, lambda done: report(
-            3, 0.05 + 0.45 * done / len(top), f"Extracted {done}/{len(top)} papers"))
+            3, 0.05 + 0.35 * done / len(top), f"Extracted {done}/{len(top)} papers"))
         for p in top:
             data, kind, st = extracted[p["paper_id"]]
             cost += st["cost_usd"]
@@ -566,16 +593,16 @@ def _run(query, report, source_names, lens_key):
         conn.commit()
         log("extract", ok=sum(1 for p in top if p["extraction"]),
             full_text=sum(1 for p in top if p["source_text_kind"] == "full_text"))
-        report(3, 0.55, "Writing the systematic review")
+        report(3, 0.42, "Writing the systematic review")
         review, st = write_review(topic, top, lens)
         cost += st["cost_usd"]
         log("review", sections=len(review["sections"]))
-        report(3, 0.72, "Independent check of every cited claim")
+        report(3, 0.58, "Independent check of every cited claim")
         review, verify_cost = verify_review(review, top)
         cost += verify_cost
         log("verify", **{k: v for k, v in review["verification"].items() if k != "model"})
 
-    report(3, 0.85, "Grouping papers into topics")
+    report(3, 0.7, "Grouping papers into topics")
     clusters, cluster_of, st = topic_clusters(topic, candidates, {p["paper_id"] for p in top},
                                               use_llm=has_llm)
     cost += st["cost_usd"]
@@ -584,7 +611,7 @@ def _run(query, report, source_names, lens_key):
     log("clusters", topics=len(clusters["series"]))
 
     # The run is evidence about its research field; the map must never break a search.
-    report(3, 0.93, "Updating the research landscape")
+    report(3, 0.78, "Updating the research landscape")
     try:
         field = landscape.update_from_run(query)
         log("landscape", field=field["field"], status=field["status"], regime=field["quadrant"],
@@ -593,6 +620,25 @@ def _run(query, report, source_names, lens_key):
     except Exception as e:
         field = None
         log("landscape", error=f"{type(e).__name__}: {e}"[:300])
+
+    # Where to contribute: the gaps, argued from this search's evidence, then audited by the
+    # same independent checker as the review.
+    opps = None
+    if has_llm:
+        report(3, 0.82, "Finding where you could contribute")
+        opps, st = opportunities.write_opportunities(
+            topic, criteria, top, clusters, field, trials, landscape.context_text(), n)
+        cost += st["cost_usd"]
+        if opps:
+            opps, verify_cost = verify_opportunities(opps, top)
+            cost += verify_cost
+            if field:
+                try:
+                    landscape.record_opportunities(field["field"], query, opps["gaps"])
+                except Exception as e:
+                    log("opportunities", error=f"could not remember them: {e}"[:300])
+        log("opportunities", gaps=len(opps["gaps"]) if opps else 0,
+            **({k: v for k, v in opps["verification"].items() if k != "model"} if opps else {}))
 
     def level_counts(key):
         vals = [p["scores"][key] for p in shortlist if p["scores"][key] is not None]
@@ -610,6 +656,7 @@ def _run(query, report, source_names, lens_key):
                     "labels": config.SOURCES},
         "trials": trials, "trials_error": trials_error,
         "landscape": field,
+        "opportunities": opps,
         "lens": {"key": lens_key if lens_key in config.LENSES else "balanced", **lens},
         "lens_weight": config.LENS_WEIGHT,
         "models": {"minilm": config.CROSS_ENCODERS["minilm"],

@@ -462,7 +462,34 @@ def update_from_run(topic, db_path=None):
             "quadrant": field.get("quadrant"), "signal": field.get("signal"),
             "entry_score": (field.get("scores") or {}).get("entry_score"),
             "warrant_gap": field["quality"].get("warrant_gap"),
+            "metrics": field.get("metrics"), "scores": field.get("scores"),
+            "quality": field.get("quality"), "priors": field.get("priors"),
+            "mvp_example": field.get("mvp_example"), "open_data": field.get("open_data"),
+            "previous_opportunities": (field.get("opportunities") or [])[-config.LANDSCAPE_MAX_OPPORTUNITIES:],
             "changes": changes, "suggestions": suggestions}
+
+
+def record_opportunities(field_id, topic, gaps):
+    """Remember the gaps a search proposed, so the next search in this field builds on them
+    (confirms, sharpens or retires them) instead of starting from nothing."""
+    doc = load_fields()
+    field = next((f for f in doc["fields"] if f["id"] == field_id), None)
+    if field is None or not gaps:
+        return []
+    kept = field.setdefault("opportunities", [])
+    seen = {o["title"].lower() for o in kept}
+    today = date.today().isoformat()
+    added = []
+    for g in gaps:
+        if g["title"].lower() in seen:
+            continue
+        entry = {"date": today, "topic": topic, "title": g["title"],
+                 "mvp": (g.get("mvp") or {}).get("title")}
+        kept.append(entry)
+        added.append(entry)
+    field["opportunities"] = kept[-config.LANDSCAPE_MAX_OPPORTUNITIES:]
+    save_fields(doc)
+    return added
 
 
 # ---- what the app shows on its "How it works" page ----
