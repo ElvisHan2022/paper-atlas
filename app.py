@@ -17,6 +17,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote
 
 import config
+import landscape
+import landscape_report
 import llm
 import pipeline
 
@@ -68,6 +70,36 @@ def run_job(job):
         traceback.print_exc()
         with jobs_lock:
             job.update(status="error", error=f"Something went wrong: {e}")
+
+
+def method_facts():
+    """The numbers behind every step, read from config.py and the live landscape, so the
+    "How it works" page can never drift from what the code does."""
+    return {
+        "sources": config.SOURCES,
+        "source_limits": config.SOURCE_LIMITS,
+        "trials_limit": config.TRIALS_LIMIT,
+        "shortlist": config.WEB_LLM_SHORTLIST,
+        "top_n": config.WEB_TOP_N,
+        "workers": config.WEB_WORKERS,
+        "lens_weight": config.LENS_WEIGHT,
+        "lenses": {k: {"label": v["label"], "criteria": v["criteria"]} for k, v in config.LENSES.items()},
+        "models": {"minilm": config.CROSS_ENCODERS["minilm"], "bge": config.CROSS_ENCODERS["bge"],
+                   "llm": config.LLM_MODEL, "review": config.REVIEW_MODEL,
+                   "verify": config.VERIFY_MODEL, "embed": config.EMBED_MODEL},
+        "prices": [config.PRICE_INPUT_PER_M, config.PRICE_OUTPUT_PER_M],
+        "pdf_max_chars": config.PDF_MAX_CHARS,
+        "cluster_k": config.CLUSTER_K_RANGE,
+        "rubric": [{"level": lv, "label": label, "description": desc}
+                   for lv, label, desc in pipeline.RUBRIC],
+        "review_sections": [label for _, label in pipeline.REVIEW_SECTIONS],
+        "landscape_knobs": {
+            "alpha": config.LANDSCAPE_ALPHA, "match_threshold": config.LANDSCAPE_MATCH_THRESHOLD,
+            "default_fit": config.LANDSCAPE_DEFAULT_FIT, "min_extracted": config.LANDSCAPE_MIN_EXTRACTED,
+            "open_data_min": config.LANDSCAPE_OPEN_DATA_MIN, "ai_terms": config.LANDSCAPE_AI_TERMS,
+            "top_journals": list(config.TOP_JOURNALS)},
+        "landscape": landscape.summary(),
+    }
 
 
 def recent_runs(limit=6):
@@ -123,6 +155,20 @@ class Handler(BaseHTTPRequestHandler):
                 "env_path": str(config.ROOT / ".env"),
                 "version": VERSION,
             })
+        elif self.path == "/api/method":
+            try:
+                self.send_json(method_facts())
+            except Exception as e:   # a damaged landscape file shouldn't hide the whole page
+                traceback.print_exc()
+                self.send_json({"error": f"Could not read the landscape: {e}"}, 500)
+        elif self.path == "/landscape":
+            doc = landscape.current_doc()
+            body = landscape_report.PAGE.format(svg=landscape_report.scatter(doc)).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
         elif self.path == "/api/runs":
             self.send_json(recent_runs())
         elif self.path.startswith("/api/runs/"):

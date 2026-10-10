@@ -191,6 +191,46 @@
                      animation: shimmer 1.4s linear infinite; }
   @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 
+  /* ---------- how it works ---------- */
+  #how .topbar { position: sticky; top: 0; z-index: 5; justify-content: space-between; }
+  .toplink { color: var(--muted); font-size: 14px; text-decoration: none; white-space: nowrap;
+             padding: 8px 4px; }
+  .toplink:hover { color: var(--accent); }
+  .how-intro { color: var(--muted); margin: 0 0 8px; }
+  .how-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 8px; }
+  .how-nav a { font-size: 14px; text-decoration: none; border: 1px solid var(--border); border-radius: 999px;
+               padding: 6px 12px; color: var(--muted); background: var(--surface); }
+  .how-nav a:hover { border-color: var(--accent); color: var(--text); }
+  #how h2.part { font-size: 21px; font-weight: 600; letter-spacing: -.01em; margin: 44px 0 6px;
+                 scroll-margin-top: 80px; }
+  .steps { list-style: none; padding: 0; margin: 18px 0 0; counter-reset: step; }
+  .steps > li { position: relative; padding: 0 0 22px 46px; counter-increment: step; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 30px; height: 30px;
+                        border-radius: 50%; background: var(--accent-soft); color: var(--accent-strong);
+                        display: grid; place-items: center; font-size: 14px; font-weight: 600; }
+  .steps > li:not(:last-child)::after { content: ""; position: absolute; left: 14px; top: 34px; bottom: 4px;
+                                        width: 2px; background: var(--border); }
+  .steps h3 { font-size: 16px; margin: 3px 0 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .steps p { margin: 4px 0; color: var(--muted); font-size: 14.5px; }
+  .steps p b { color: var(--text); font-weight: 600; }
+  .tag { font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 8px; letter-spacing: .02em;
+         background: var(--surface-2); color: var(--muted); }
+  .tag.llm { background: var(--accent-soft); color: var(--accent-strong); }
+  .formula { font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--surface-2);
+             border-radius: 10px; padding: 10px 14px; margin: 8px 0; color: var(--text); overflow-x: auto;
+             white-space: pre; }
+  .callout { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius);
+             padding: 14px 16px; margin: 14px 0; font-size: 14.5px; color: var(--muted); }
+  .callout b { color: var(--text); }
+  .stat-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+  .stat { border: 1px solid var(--border); background: var(--surface); border-radius: 12px; padding: 10px 14px;
+          min-width: 130px; flex: 1; }
+  .stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 13px; }
+  .sig { font-weight: 600; font-size: 12.5px; }
+  .sig.GO { color: var(--good); } .sig.WAIT { color: var(--s4); } .sig.SKIP { color: var(--faint); }
+  .plain-list { margin: 6px 0; padding-left: 20px; color: var(--muted); font-size: 14.5px; }
+
   /* ---------- results ---------- */
   #results .topbar { position: sticky; top: 0; z-index: 5; }
   .mini-search { flex: 1; max-width: 560px; display: flex; align-items: center; gap: 8px;
@@ -406,7 +446,7 @@
     </div>
   </main>
   <footer class="home-foot">Searches PubMed, OpenAlex, medRxiv / bioRxiv, Semantic Scholar, arXiv and ClinicalTrials.gov ·
-    Ranked by MiniLM, BGE and Claude<span id="app-version"></span></footer>
+    Ranked by MiniLM, BGE and Claude · <a href="#how" data-how>How it works</a><span id="app-version"></span></footer>
 </section>
 
 <!-- ================= PROGRESS ================= -->
@@ -455,6 +495,7 @@
       <input id="mini-q" maxlength="300" placeholder="Search another topic">
       <button class="go" type="submit" aria-label="Search"><svg width="18" height="18" aria-hidden="true"><use href="#arrow"/></svg></button>
     </form>
+    <a class="toplink" href="#how" data-how>How it works</a>
   </header>
   <div class="wrap">
     <div class="result-head">
@@ -475,6 +516,18 @@
     <div class="panel" role="tabpanel" id="panel-trials" aria-labelledby="tab-trials" hidden></div>
     <div class="panel" role="tabpanel" id="panel-rubric" aria-labelledby="tab-rubric" hidden></div>
   </div>
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+<section id="how" class="view" hidden>
+  <header class="topbar">
+    <a class="brand" href="#" data-home><svg width="26" height="26" aria-hidden="true"><use href="#logo"/></svg><span>paper atlas</span></a>
+    <span>
+      <a class="toplink" href="#" id="how-back" hidden>← Back to results</a>
+      <a class="toplink" href="/landscape" target="_blank" rel="noopener">Landscape map ↗</a>
+    </span>
+  </header>
+  <div class="wrap" id="how-body"><p class="how-intro">Loading…</p></div>
 </section>
 
 <script>
@@ -509,7 +562,7 @@ function ago(iso) {
 
 // ---------------- views ----------------
 function show(id) {
-  for (const v of ["home", "progress", "results"]) $("#" + v).hidden = v !== id;
+  for (const v of ["home", "progress", "results", "how"]) $("#" + v).hidden = v !== id;
   window.scrollTo(0, 0);
 }
 function goHome() {
@@ -521,6 +574,7 @@ function goHome() {
 }
 document.addEventListener("click", e => {
   if (e.target.closest("[data-home]")) { e.preventDefault(); goHome(); }
+  if (e.target.closest("[data-how]")) { e.preventDefault(); openHow(); }
 });
 
 // ---------------- home ----------------
@@ -1107,6 +1161,183 @@ function runLog(r) {
       <td style="color:var(--muted)">${esc(detail(e))}</td></tr>`).join("")}</tbody></table></div>`;
 }
 
+// ---------------- how it works ----------------
+// Every number here comes from /api/method (config.py and the live landscape), so the page
+// describes what the code does today, not what it did when this text was written.
+let howBackHash = "";
+async function openHow() {
+  howBackHash = state.result && !$("#results").hidden ? location.hash : "";
+  $("#how-back").hidden = !howBackHash;
+  history.replaceState(null, "", "#how");
+  show("how");
+  try {
+    const res = await fetch("/api/method");
+    const f = await res.json();
+    if (!res.ok) throw new Error(f.error || res.status);
+    $("#how-body").innerHTML = howPage(f);
+  } catch (err) {
+    $("#how-body").innerHTML = `<p class="form-error">Couldn't load the method details (${esc(err.message)}). Restart <code>python app.py</code> and reload.</p>`;
+  }
+}
+$("#how-back").addEventListener("click", e => {
+  e.preventDefault(); history.replaceState(null, "", howBackHash); show("results");
+});
+
+function pct(x) { return x === null || x === undefined ? "–" : Math.round(x * 100) + "%"; }
+function step(title, tag, body) {
+  const cls = tag === "Claude" ? "tag llm" : "tag";
+  return `<li><h3>${title}${tag ? ` <span class="${cls}">${tag}</span>` : ""}</h3>${body}</li>`;
+}
+
+function howPage(f) {
+  const L = f.landscape, K = f.landscape_knobs, w = L.weights;
+  const srcs = Object.entries(f.source_limits).map(([k, n]) => `${esc(f.sources[k] || k)} (up to ${n})`).join(", ");
+  const lensW = Math.round(f.lens_weight * 100);
+  const terms = K.ai_terms.map(t => `“${esc(t)}”`).join(", ");
+  const search = `
+    <h2 class="part" id="how-search">Part 1 · From your keywords to ten reviewed papers</h2>
+    <p class="how-intro">One search runs these steps in order. Steps tagged <span class="tag llm">Claude</span> need
+      <code>ANTHROPIC_API_KEY</code>. Without it they are skipped: papers are ranked by the local models alone, and
+      topic clusters and the landscape still update.</p>
+    <ol class="steps">
+      ${step("You type keywords", "", `<p>You also pick an <b>evidence lens</b> (what kind of work to favor) and the
+        <b>sources</b> to search. Your keywords are sent to the sources <b>exactly as typed</b>. They aren't rewritten
+        first, so precise terms find precise papers.</p>`)}
+      ${step("The query becomes a topic and criteria", "Claude", `<p>${esc(f.models.llm)} restates your keywords as a one-line
+        <b>topic</b> and writes two sentences of <b>relevance criteria</b>. These steer the scoring, not the search.
+        Both are shown at the top of every result.</p>`)}
+      ${step("Sources are searched in parallel", "Web", `<p>${srcs}. Papers without an abstract are dropped.
+        A paper found in several sources is <b>merged into one</b> by DOI, arXiv ID or title, keeping the best
+        details from each. ClinicalTrials.gov (up to ${f.trials_limit} studies) is searched alongside and shown in its own tab,
+        but trials are <b>never ranked as papers</b>.</p>`)}
+      ${step("Two local models rank every candidate", "Free, on your computer", `<p><b>MiniLM</b> and <b>BGE</b> are
+        cross-encoders: each reads “topic + criteria” and one paper's title and abstract <b>together</b>, and outputs a
+        raw score that is squashed to 0–1. The two scores are averaged.</p>
+        <div class="formula">local score = (MiniLM + BGE) / 2</div>`)}
+      ${step(`The top ${f.shortlist} go to an LLM judge`, "Claude", `<p>The judge reads each abstract and gives a
+        <b>relevance level</b> from the rubric below, plus one sentence on why. With a lens on, it also gives a
+        <b>lens fit</b> from 1 to 5, judged from the title, abstract, venue and publication types. Levels become 0–1 as
+        (level − 1) / 4.</p>
+        <div class="table-scroll"><table><thead><tr><th>Level</th><th>Label</th><th>Meaning</th></tr></thead><tbody>
+        ${f.rubric.map(r => `<tr><td><span class="level-pill">${r.level}</span></td><td><b>${esc(r.label)}</b></td><td>${esc(r.description)}</td></tr>`).join("")}
+        </tbody></table></div>
+        <div class="formula">final score = ${100 - lensW}% relevance + ${lensW}% lens fit   (Balanced lens: relevance only)
+ties broken by the local score; the top ${f.top_n} are kept</div>`)}
+      ${step(`The top ${f.top_n} are read in detail`, "Claude", `<p>For each paper, Claude fills a fixed form:
+        study design, population, data source, validation (internal, external, none or unclear), methods, results,
+        whether uncertainty was reported, and the limitations the authors stated (kept apart from limitations it
+        infers itself). Each answer carries a quote of at most 15 words as evidence, and it writes “not found” instead of guessing.
+        It reads the <b>full text</b> (first ${f.pdf_max_chars.toLocaleString()} characters) when an open-access PDF exists,
+        and otherwise the abstract.</p>`)}
+      ${step("A review is written from those forms", "Claude", `<p>Five sections (${f.review_sections.map(esc).join(", ")}).
+        Every claim must cite its papers as [n], and the citations link to the papers.</p>`)}
+      ${step("A separate checker audits every claim", "Claude", `<p>A <b>new call that didn't write the review</b>
+        sees only the papers' abstracts and evidence quotes, and marks each cited claim <b>supported</b>,
+        <b>partly supported</b> or <b>not supported</b>. The writer never grades its own work.</p>`)}
+      ${step("All candidates are grouped into topics", "Local + Claude", `<p>A bi-encoder turns each candidate into a
+        vector, and k-means splits them into ${f.cluster_k[0]}–${f.cluster_k[1]} groups (the number that separates them most
+        cleanly). Claude names each group, or the two most distinctive words do without a key. The chart shows papers per group per year.</p>`)}
+      ${step("The research landscape is updated", "Free, on your computer", `<p>The search becomes one piece of evidence
+        about its research field. Part 2 explains how.</p>`)}
+    </ol>`;
+
+  const update = `
+    <h2 class="part" id="how-landscape">Part 2 · How the landscape updates itself</h2>
+    <p class="how-intro">The landscape scores ${L.fields.length} healthcare AI fields for how crowded they are, how fast they
+      grow and how feasible they are to enter. It started from a hand-built seed, and every search adds evidence.</p>
+    <ol class="steps">
+      ${step("Match your keywords to a field", "", `<p>Your keywords are compared with each field's PubMed search terms
+        and its name, ignoring common words like “clinical” and “model”. A field matches if your keywords contain
+        one of its search terms <b>whole</b> (including acronyms, so “LLM” matches “large language model”), or share at
+        least <b>${pct(K.match_threshold)}</b> of their words with it. If none match, a new <b>provisional field</b> is
+        created. It is listed but not ranked until you give it a search query and priors.</p>`)}
+      ${step("Measure what this search found", "", `<p>From this search's papers: the number of papers per year,
+        the <b>AI share</b> (title or abstract mentions ${terms}), the <b>review share</b>, the share in the
+        <b>top journals</b> (${K.top_journals.map(esc).join(", ")}) and the median citations.
+        From the detailed forms, when at least ${K.min_extracted} exist:</p>
+        <ul class="plain-list">
+          <li><b>external validation rate</b> (papers marked “unclear” count as not validated)</li>
+          <li><b>uncertainty reported rate</b></li>
+          <li><b>open data rate</b> (data source names a public dataset such as MIMIC or UK Biobank)</li>
+          <li><b>transport limitation rate</b> (stated limitations mention generalization, single sites or subgroups)</li>
+        </ul>`)}
+      ${step("Write it to the evidence log", "", `<p>One line is appended to <code>data/landscape/observations.jsonl</code>
+        with the date, the field and your keywords. Past lines are <b>never edited or deleted</b>, so every score can be
+        traced back to its evidence.</p>`)}
+      ${step("Nudge the field's quality metrics", "", `<p>Each metric moves <b>${pct(K.alpha)}</b> of the way toward what
+        this search saw, so one narrow search can't swing the map, and evidence builds up over many searches.</p>
+        <div class="formula">new value = ${K.alpha} × this search + ${(1 - K.alpha).toFixed(1)} × previous value
+warrant gap = 1 − external validation rate</div>`)}
+      ${step("Rescore every field", "", `<p>Paper counts are turned into <b>percentiles</b> (0–100, where a field stands
+        among the others), because a few huge fields would distort plain averages. Counts come from <b>${esc({pubmed_connector: "the PubMed seed (Oct 2026)", openalex: "OpenAlex (refresh_counts.py)"}[L.counts_source] || L.counts_source)}</b>.</p>
+        <div class="formula">momentum    = average percentile of: total growth 2025/2021, AI growth, arXiv growth
+crowding    = percentile of 2025 AI papers
+whitespace  = percentile of clinical papers per AI paper
+opportunity = ${w.opportunity.momentum} × momentum + ${w.opportunity.whitespace} × whitespace + ${w.opportunity.inverse_crowding} × (100 − crowding)
+feasibility = (data access + MVP simplicity + domain access) / 9 × 100
+fit         = your fit / 3 × 100
+entry score = ${w.entry.opportunity} × opportunity + ${w.entry.feasibility} × feasibility + ${w.entry.fit} × fit</div>
+        <p>Data access, MVP simplicity and domain access are <b>your priors</b>, 0–3 each. Fit (0–3) is
+        <b>private</b>: ${L.private_fit ? "your scores are loaded." : `not loaded, so every field gets ${K.default_fit}.`}</p>
+        <p>The <b>regime</b> comes from where the field sits: crowding ≥ 50 and momentum ≥ 50 is <b>Hot and contested</b>;
+        crowding ≥ 50 with momentum below 50 is <b>Crowded, decelerating</b>; momentum ≥ 50 alone is <b>Blooming</b>;
+        whitespace ≥ 60 is <b>Dormant whitespace</b>; anything else is a <b>Quiet niche</b>.</p>`)}
+      ${step("Log what changed", "", `<p>If a field's regime or signal changes, the field gets a dated history entry
+        naming the search that caused it, and a line is added to <code>outputs/landscape_changes.md</code>.</p>`)}
+      ${step("Suggest, never apply", "", `<p>Priors are your judgments, so searches only <b>suggest</b> changes, in
+        <code>data/landscape/review_queue.md</code>. For example: lower data access if fewer than ${pct(K.open_data_min)} of
+        a field's papers use open data, or raise it above ${pct(3 * K.open_data_min)}. You decide.</p>`)}
+    </ol>
+    <h2 class="sub">What changes, and who changes it</h2>
+    <div class="table-scroll"><table><thead><tr><th>Input</th><th>Changed by</th><th>When</th></tr></thead><tbody>
+      <tr><td>Quality metrics (external validation, warrant gap…)</td><td>Every search, automatically</td><td>After each search</td></tr>
+      <tr><td>Momentum, crowding, regime, entry score</td><td>Recomputed automatically</td><td>After each search or count refresh</td></tr>
+      <tr><td>Paper counts per field</td><td>You, with <code>python refresh_counts.py</code></td><td>Whenever you want fresh counts</td></tr>
+      <tr><td>Priors: data access, MVP simplicity, domain access</td><td><b>Only you</b> (review queue suggests)</td><td>When you edit <code>fields.json</code></td></tr>
+      <tr><td>Fit and your personal lens</td><td><b>Only you</b>, kept private</td><td><code>landscape/private/</code>, never committed</td></tr>
+      <tr><td>Signals: GO, WAIT, SKIP</td><td><b>Only you</b></td><td>A regime change is logged so you can revisit</td></tr>
+    </tbody></table></div>`;
+
+  const now = `
+    <h2 class="part" id="how-now">Part 3 · The landscape right now</h2>
+    <div class="stat-row">
+      <div class="stat"><b>${L.n_runs}</b><span>searches added as evidence</span></div>
+      <div class="stat"><b>${L.n_observations}</b><span>observations in the log</span></div>
+      <div class="stat"><b>${L.fields.length}</b><span>ranked fields</span></div>
+      <div class="stat"><b>${L.review_queue.length}</b><span>suggestions waiting for you</span></div>
+    </div>
+    <p class="how-intro">${L.live ? "Live copy in <code>data/landscape/</code>." : "No search has updated it yet, so this is the seed."}
+      Fit: ${L.private_fit ? "your private scores." : `neutral (${K.default_fit}) for every field. Import yours with <code>python landscape.py --import-private &lt;package&gt;</code>.`}
+      <a href="/landscape" target="_blank" rel="noopener">Open the crowding vs momentum map ↗</a></p>
+    ${L.review_queue.length ? `<div class="callout"><b>Waiting for your decision</b><ul class="plain-list">${L.review_queue.map(x => `<li>${esc(x).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")}</li>`).join("")}</ul></div>` : ""}
+    <div class="table-scroll"><table><thead><tr><th>#</th><th>Field</th><th>Signal</th><th class="hide-sm">Regime</th>
+      <th>Entry</th><th class="hide-sm">Momentum</th><th class="hide-sm">Crowding</th><th>Warrant gap</th><th>Searches</th></tr></thead><tbody>
+      ${L.fields.map((x, i) => `<tr><td class="num">${i + 1}</td><td>${esc(x.label)}</td><td><span class="sig ${esc(x.signal)}">${esc(x.signal || "")}</span></td>
+        <td class="hide-sm">${esc(x.regime)}</td><td class="num"><b>${fmt(x.entry, 1)}</b></td><td class="num hide-sm">${fmt(x.momentum, 0)}</td>
+        <td class="num hide-sm">${fmt(x.crowding, 0)}</td><td class="num">${pct(x.warrant_gap)}</td><td class="num">${x.runs}</td></tr>`).join("")}
+    </tbody></table></div>
+    ${L.provisional.length ? `<h2 class="sub">Provisional fields (not ranked yet)</h2><ul class="plain-list">${L.provisional.map(x => `<li>${esc(x.label)} <span style="color:var(--faint)">(${esc(x.id)})</span></li>`).join("")}</ul>` : ""}
+    ${L.recent_runs.length ? `<h2 class="sub">Latest searches added</h2><ul class="plain-list">${L.recent_runs.map(x => `<li>${esc(x.date)} · “${esc(x.topic)}” → ${esc(x.field)}</li>`).join("")}</ul>` : ""}
+    ${L.changes.length ? `<h2 class="sub">Latest changes</h2><ul class="plain-list">${L.changes.map(x => `<li>${esc(x).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")}</li>`).join("")}</ul>` : ""}
+    <h2 class="sub">Read these numbers with care</h2>
+    <ul class="plain-list">
+      <li>No scorer has been checked against human labels yet, so treat rankings as a starting point.</li>
+      <li>Field counts are keyword searches: new vocabulary (“large language model” in 2021) inflates growth.</li>
+      <li>Quality metrics come from Claude's reading of the top ${f.top_n} papers per search, so they inherit its mistakes and the search's focus.</li>
+    </ul>`;
+
+  return `<div class="result-head"><h1>How paper atlas works</h1>
+    <p class="how-intro">What happens to your keywords, how papers and fields are scored, and how the app updates what it
+      knows. Every number on this page is read from <code>config.py</code> and the live landscape when the page opens.</p></div>
+    <nav class="how-nav" aria-label="On this page"><a href="#how-search" data-jump>1 · Search and scoring</a>
+      <a href="#how-landscape" data-jump>2 · Landscape updates</a><a href="#how-now" data-jump>3 · Landscape now</a></nav>
+    ${search}${update}${now}`;
+}
+$("#how-body").addEventListener("click", e => {
+  const a = e.target.closest("[data-jump]");
+  if (a) { e.preventDefault(); document.getElementById(a.getAttribute("href").slice(1)).scrollIntoView({ behavior: "smooth" }); }
+});
+
 // ---------------- start ----------------
 // Never fail silently: show unexpected page errors where the person is looking.
 function showPageError(msg) {
@@ -1119,7 +1350,9 @@ window.addEventListener("unhandledrejection", e => showPageError(e.reason && e.r
 
 const m = location.hash.match(/^#run=(.+)$/);
 loadOptions();
-if (m) openRun(decodeURIComponent(m[1])); else { loadRecent(); q.focus(); }
+if (m) openRun(decodeURIComponent(m[1]));
+else if (location.hash === "#how") openHow();
+else { loadRecent(); q.focus(); }
 </script>
 </body>
 </html>

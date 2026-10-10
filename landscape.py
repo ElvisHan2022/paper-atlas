@@ -465,6 +465,57 @@ def update_from_run(topic, db_path=None):
             "changes": changes, "suggestions": suggestions}
 
 
+# ---- what the app shows on its "How it works" page ----
+
+def current_doc():
+    """The live map if a run has made one, else the tracked seed. Reading never writes."""
+    live = live_path("fields.json")
+    if live.exists():
+        return load_fields(live)
+    doc = load_fields(config.LANDSCAPE_SEED_DIR / "fields.json")
+    if private_fit():   # the seed's scores use the neutral fit; show the owner's
+        rescore(doc, load_observations(config.LANDSCAPE_SEED_DIR / "observations.jsonl"))
+    return doc
+
+
+def summary():
+    """The landscape's current state, for people: ranking, evidence so far, what changed,
+    and what is waiting for a human decision."""
+    live = live_path("fields.json").exists()
+    doc = current_doc()
+    observations = load_observations(live_path("observations.jsonl") if live
+                                     else config.LANDSCAPE_SEED_DIR / "observations.jsonl")
+    runs = [o for o in observations if o.get("source") == "atlas_run"]
+    changes_file = config.OUTPUT_DIR / "landscape_changes.md"
+    changes = ([l[2:] for l in changes_file.read_text(encoding="utf-8").splitlines()
+                if l.startswith("- ")][-5:] if changes_file.exists() else [])
+    queue_file = live_path("review_queue.md")
+    queue = ([re.sub(r"\s*<!--.*?-->", "", l[6:]) for l in
+              queue_file.read_text(encoding="utf-8").splitlines() if l.startswith("- [ ] ")]
+             if queue_file.exists() else [])
+    ranked = sorted((f for f in doc["fields"] if f.get("scores") and f.get("status") == "active"),
+                    key=lambda f: -f["scores"]["entry_score"])
+    return {
+        "live": live,
+        "private_fit": bool(private_fit()),
+        "counts_source": doc["meta"].get("counts_source", "pubmed_connector"),
+        "weights": doc["meta"]["weights"],
+        "n_observations": len(observations),
+        "n_runs": len(runs),
+        "recent_runs": [{"date": o["date"], "topic": o.get("topic"), "field": o["field"]}
+                        for o in runs[-5:]][::-1],
+        "fields": [{"id": f["id"], "label": f["label"], "signal": f.get("signal"),
+                    "regime": f.get("quadrant"), "entry": f["scores"]["entry_score"],
+                    "momentum": f["metrics"]["momentum"], "crowding": f["metrics"]["crowding"],
+                    "warrant_gap": (f.get("quality") or {}).get("warrant_gap"),
+                    "runs": (f.get("quality") or {}).get("observations", 0)} for f in ranked],
+        "provisional": [{"id": f["id"], "label": f["label"]} for f in doc["fields"]
+                        if f.get("status") == "provisional"],
+        "changes": changes,
+        "review_queue": queue,
+    }
+
+
 # ---- one-time import of the owner's private lens ----
 
 def import_private(package):

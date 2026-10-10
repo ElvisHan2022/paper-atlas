@@ -56,6 +56,8 @@ Results open in five tabs:
 - **Clinical trials:** registered studies from ClinicalTrials.gov, with status, phase, enrollment and whether results are posted.
 - **Scoring rubric:** how the papers were ranked, plus the step log for the search.
 
+**How it works** (link at the bottom of the home page, or http://127.0.0.1:8000/#how) explains every step, from your keywords to the landscape update, with the numbers read live from `config.py`, and shows the current landscape and anything waiting for your review. The crowding-versus-momentum map is at http://127.0.0.1:8000/landscape.
+
 Finished searches are saved in `outputs/runs/` and listed under "Recent searches". A search costs a few cents with Haiku.
 
 **Where the key goes:** in a file named `.env` in the `paper-atlas` folder on your computer, next to `app.py` (never in GitHub). When `python app.py` starts, it prints the exact path it reads and whether Anthropic accepted the key.

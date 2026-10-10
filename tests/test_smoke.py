@@ -415,3 +415,14 @@ def test_old_database_gains_the_publication_types_column(tmp_path):
     conn = db.connect(path)
     db.upsert_paper(conn, {"paperId": "p", "title": "t", "publicationTypes": ["Review"]}, "q")
     assert json.loads(conn.execute("SELECT publication_types FROM papers").fetchone()[0]) == ["Review"]
+
+
+def test_how_it_works_facts_come_from_config():
+    import app
+    import config
+    facts = app.method_facts()
+    assert facts["shortlist"] == config.WEB_LLM_SHORTLIST and facts["top_n"] == config.WEB_TOP_N
+    assert facts["landscape_knobs"]["alpha"] == config.LANDSCAPE_ALPHA
+    assert [r["level"] for r in facts["rubric"]] == [5, 4, 3, 2, 1]
+    assert facts["landscape"]["fields"]
+

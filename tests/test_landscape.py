@@ -235,3 +235,18 @@ def test_import_private_reads_the_original_package(sandbox):
     owner = (out / "owner.md").read_text()
     assert "Targets: y" in owner and "## 6." not in owner
     assert landscape.private_fit() == {"t2d": 1.0}
+
+
+def test_summary_reports_runs_queue_and_ranking(sandbox):
+    assert landscape.summary()["live"] is False          # before any run: the seed, no writes
+    assert not config.LANDSCAPE_DIR.exists()
+    topic = "retinal photography for kidney disease screening"
+    path = sandbox / "atlas.db"
+    toy_db(path, topic)
+    landscape.update_from_run(topic, path)
+    s = landscape.summary()
+    assert s["live"] and s["n_runs"] == 1 and s["recent_runs"][0]["topic"] == topic
+    assert len(s["review_queue"]) == 1 and "<!--" not in s["review_queue"][0]
+    assert [f["entry"] for f in s["fields"]] == sorted((f["entry"] for f in s["fields"]), reverse=True)
+    assert any(f["id"] == s["recent_runs"][0]["field"] for f in s["provisional"])
+
