@@ -85,6 +85,35 @@ Each step also runs on its own:
 
 Every HTTP response is cached in `cache/`, and every step skips work it has already done, so you can rerun steps freely. Models, prices, and thresholds all live in `config.py`.
 
+## Research landscape
+
+paper-atlas keeps a running map of 26 healthcare AI fields: how crowded each is, how fast it
+grows, and how feasible it is to enter. The seed scores are in `landscape/`, and the method
+is in `landscape/CONTEXT.md` and `docs/LANDSCAPE_SPEC.md`.
+
+- **Every search updates it.** The topic is matched to a field. The run's papers and
+  extractions are added as one observation: AI share, review share, top-journal share, and
+  how often papers report external validation (the *warrant gap* is the rest). The field's
+  quality metrics move 30% toward what the run saw. Then every field is rescored.
+- **New topics** become *provisional* fields: listed, but not ranked until you add a PubMed
+  query and priors.
+- **Your judgments are never overwritten.** Suggested changes to priors go to
+  `data/landscape/review_queue.md` for you to accept or ignore.
+
+```bash
+python landscape.py --rescore-only           # rescore and redraw the map
+python refresh_counts.py --source openalex   # fresh paper counts for every field
+python run_all.py --topic "..." --no-landscape  # a command-line run that leaves the map alone
+```
+
+The map is at `outputs/landscape.md` (ranked table) and `outputs/landscape.html` (crowding
+against momentum). Changes are logged in `outputs/landscape_changes.md`.
+
+**Private files.** Your fit scores and career lens are kept out of git, in
+`landscape/private/`. Import them once from the original package:
+`python landscape.py --import-private path\to\paper-atlas-landscape.zip`. Without them,
+every field gets a neutral fit of 2.
+
 ## Results
 
 `evaluate.py` fills in this section from `outputs/scorer_comparison.md`.

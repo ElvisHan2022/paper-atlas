@@ -18,6 +18,9 @@ Python 3.11, conda env `atlas`, Windows-first (use `pathlib`, no shell-specific 
 - `config.py` every model name, price, threshold, source limit and lens
 - `templates/app.html` the whole UI (plain HTML/CSS/JS, no build step)
 - `evaluate.py`, `label.py`, `graph.py` command-line evaluation and citation map
+- `landscape.py` field map updated by every run (`landscape_report.py`, `refresh_counts.py`);
+  tracked seed in `landscape/`, live copy in `data/landscape/`, personal lens and fit in the
+  gitignored `landscape/private/`. Runs never edit priors; they only write to the review queue
 - Data (gitignored): `data/atlas.db`, `cache/` (HTTP + LLM answers), `outputs/runs/`
 - `docs/ROADMAP.md` red flags, planned work and build order; read it before larger changes
 
@@ -30,7 +33,8 @@ Python 3.11, conda env `atlas`, Windows-first (use `pathlib`, no shell-specific 
 - Fan out only work that is truly independent (sources, per-paper calls, review sections).
 
 ## Rules
-- IMPORTANT: never commit `.env`, API keys, `data/`, `cache/` or `outputs/runs/`.
+- IMPORTANT: never commit `.env`, API keys, `data/`, `cache/`, `outputs/runs/` or
+  `landscape/private/` (the repo is public; career targets and fit scores stay local).
 - IMPORTANT: do not change `score.LLM_PROMPT`; evaluate.py results must stay comparable.
   Lens behaviour goes in `score.LENS_PROMPT`.
 - The review writer never grades its own work: verification stays a separate call with its

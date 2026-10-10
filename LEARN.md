@@ -92,6 +92,23 @@ Also worth reading: scorer-vs-scorer Spearman correlation (`evaluate.py:153-163`
 | Content-addressed LLM cache | Same request means same answer from disk. Retrying a failed search costs only the unfinished steps. | `llm.ask_json(cache=True)` |
 | CLAUDE.md | The briefing a future Claude Code session reads first: commands, layout, and the few rules that must not be broken. | `CLAUDE.md` |
 
+## 10. `landscape.py`: a research landscape that learns from every run (Milestone 7)
+
+The seed in `landscape/` scores 26 healthcare AI fields for crowding, momentum and entry
+feasibility. Every topic run adds one observation and nudges the matching field.
+
+| Concept | Why it matters here | Where |
+|---|---|---|
+| Percentile ranks instead of z-scores | Paper counts are heavy-tailed: radiology has 11,721 AI papers in 2025 while dataset shift has 65. A z-score would let one giant field squash everyone else toward the mean, so the mean and standard deviation describe nobody. A percentile rank only asks "what share of fields is below this one?", which is robust to outliers and keeps every score on the same 0-100 scale. Logging counts first only changes ties, not ranks; it matters for the ratios. | `landscape.pct_rank`, `landscape.rescore` |
+| Exponentially weighted averages as evidence accumulation | One search is a narrow sample. `new = 0.3 × this run + 0.7 × everything before` lets evidence pile up: after about seven runs, the first one's weight has fallen below 10%. A single odd query moves a metric 30% of the way, never all of it. | `landscape.update_metrics`, `config.LANDSCAPE_ALPHA` |
+| Human-reviewed priors | Data access, MVP difficulty, domain barrier and fit are judgments no count can measure. If runs rewrote them, a quirk in the extraction (for example, a model that misses dataset names) would quietly change your career map. So runs only write suggestions, with their evidence, to `review_queue.md`, and you decide. | `landscape.propose_priors` |
+| Append-only evidence log | `observations.jsonl` is never edited. Any score can be recomputed from it, and a bad observation can be found and explained instead of disappearing into an average. | `landscape.append_observation` |
+| Like with like | Percentiles only compare counts from the same source, so scoring switches from the PubMed seed to OpenAlex only once every active field has OpenAlex counts. | `landscape.latest_counts`, `refresh_counts.py` |
+| Bibliometric caveats | **Vocabulary drift:** "large language model" barely existed in 2021, so its growth from 1 to 7,312 papers measures a new word as much as a new field (the scoring floors the 2021 count at 1, which tames the ratio but does not remove the effect). **Preprint coverage:** PubMed indexes only some medRxiv and bioRxiv preprints, and almost no arXiv. **Keyword proxies:** a query catches papers that use its words, not papers about the topic. **The warrant gap** comes from LLM extractions of the top papers, so it inherits the extractor's errors. | `landscape/CONTEXT.md` §8 |
+
+Private data stays out of git: the owner's fit scores and career lens live in the gitignored
+`landscape/private/`, and the live map in `data/landscape/`.
+
 ---
 
 ## Exercises (each one requires changing code)
@@ -120,3 +137,7 @@ Also worth reading: scorer-vs-scorer Spearman correlation (`evaluate.py:153-163`
    Add `co_citation` edges (two papers cited together by the same later paper) using
    `/paper/{id}/citations` in `fetch.py`, draw them as a third toggle in
    `templates/graph.html`, and compare which communities each edge type produces.
+8. **Concentration.** Add `concentration_hhi` to `landscape.observe_run`: fetch author
+   institutions for the 20 most-cited papers from OpenAlex, and compute the
+   Herfindahl-Hirschman index of institution shares. Does it separate "crowded by many
+   labs" from "dominated by three"?
