@@ -194,7 +194,8 @@
   /* ---------- how it works ---------- */
   #how .topbar { position: sticky; top: 0; z-index: 5; justify-content: space-between; }
   .toplink { color: var(--muted); font-size: 14px; text-decoration: none; white-space: nowrap;
-             padding: 8px 4px; }
+             padding: 8px 4px; flex: none; }
+  .mini-search { min-width: 0; }
   .toplink:hover { color: var(--accent); }
   .how-intro { color: var(--muted); margin: 0 0 8px; }
   .how-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 8px; }
@@ -213,9 +214,9 @@
   .steps h3 { font-size: 16px; margin: 3px 0 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .steps p { margin: 4px 0; color: var(--muted); font-size: 14.5px; }
   .steps p b { color: var(--text); font-weight: 600; }
-  .tag { font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 8px; letter-spacing: .02em;
-         background: var(--surface-2); color: var(--muted); }
-  .tag.llm { background: var(--accent-soft); color: var(--accent-strong); }
+  .step-tag { font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 8px; letter-spacing: .02em;
+              background: var(--surface-2); color: var(--muted); }
+  .step-tag.llm { background: var(--accent-soft); color: var(--accent-strong); }
   .formula { font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--surface-2);
              border-radius: 10px; padding: 10px 14px; margin: 8px 0; color: var(--text); overflow-x: auto;
              white-space: pre; }
@@ -230,6 +231,41 @@
   .sig { font-weight: 600; font-size: 12.5px; }
   .sig.GO { color: var(--good); } .sig.WAIT { color: var(--s4); } .sig.SKIP { color: var(--faint); }
   .plain-list { margin: 6px 0; padding-left: 20px; color: var(--muted); font-size: 14.5px; }
+
+  /* ---------- opportunities ---------- */
+  .tab-sep { align-self: center; color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+             padding: 0 4px 0 10px; white-space: nowrap; }
+  .evidence-note { color: var(--muted); font-size: 14px; margin: 0 0 16px; padding-left: 12px; border-left: 3px solid var(--accent-soft); }
+  .field-read { border: 1px solid var(--border); background: var(--surface-2); border-radius: var(--radius); padding: 14px 16px;
+                margin: 0 0 22px; font-size: 14.5px; color: var(--muted); }
+  .field-read h3 { margin: 0 0 8px; font-size: 15px; color: var(--text); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .field-read .kv { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 0; }
+  .field-read .kv b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .opp-card { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius);
+              padding: 20px 22px; margin: 0 0 16px; box-shadow: var(--shadow); }
+  .opp-card > h2 { margin: 0 0 6px; font-size: 18px; display: flex; align-items: flex-start; gap: 10px; }
+  .opp-card > h2 .num { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--accent);
+                        color: var(--on-accent); display: grid; place-items: center; font-size: 14px; margin-top: 1px; }
+  .opp-meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px 36px; }
+  .opp-card h4 { margin: 14px 0 4px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); }
+  .opp-card p { margin: 0; }
+  .opp-card .angles { margin: 4px 0 0; padding-left: 20px; color: var(--muted); }
+  .opp-card .angles b { color: var(--text); }
+  .mvp { margin-top: 14px; border-radius: 12px; background: var(--accent-soft); padding: 14px 16px; }
+  .mvp h3 { margin: 0 0 8px; font-size: 15.5px; color: var(--accent-strong); }
+  .mvp dl { display: grid; grid-template-columns: 110px 1fr; gap: 6px 12px; margin: 0; font-size: 14px; }
+  .mvp dt { color: var(--muted); font-weight: 600; }
+  .mvp dd { margin: 0; }
+  .chip-btn { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; font-size: 12.5px;
+              padding: 3px 10px; cursor: pointer; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  .chip-btn:hover { border-color: var(--accent); color: var(--text); }
+  .chip-btn .dot { width: 8px; height: 8px; }
+  @media (max-width: 640px) { .mvp dl { grid-template-columns: 1fr; } .opp-meta { margin-left: 0; } .opp-card { padding: 16px; } }
+  .gapmap text { fill: var(--muted); font-size: 12px; }
+  .gapmap .qlabel { fill: var(--faint); font-size: 11.5px; }
+  .gapmap .name { fill: var(--text); font-size: 12.5px; font-weight: 500; }
+  .gapmap .badge { fill: var(--accent); }
+  .gapmap .badge-text { fill: var(--on-accent); font-size: 11px; font-weight: 700; }
 
   /* ---------- results ---------- */
   #results .topbar { position: sticky; top: 0; z-index: 5; }
@@ -504,16 +540,17 @@
       <p class="criteria" id="res-criteria"></p>
     </div>
     <div class="tabs" role="tablist" aria-label="Results">
-      <button class="tab" role="tab" id="tab-papers" aria-controls="panel-papers" data-tab="papers">Candidate papers <span class="count">10</span></button>
-      <button class="tab" role="tab" id="tab-review" aria-controls="panel-review" data-tab="review">Systematic review</button>
+      <button class="tab" role="tab" id="tab-opportunities" aria-controls="panel-opportunities" data-tab="opportunities">Opportunities to contribute</button>
+      <span class="tab-sep" role="presentation">Evidence</span>
       <button class="tab" role="tab" id="tab-topics" aria-controls="panel-topics" data-tab="topics">Topic clusters</button>
-      <button class="tab" role="tab" id="tab-trials" aria-controls="panel-trials" data-tab="trials">Clinical trials <span class="count">0</span></button>
-      <button class="tab" role="tab" id="tab-rubric" aria-controls="panel-rubric" data-tab="rubric">Scoring rubric</button>
+      <button class="tab" role="tab" id="tab-review" aria-controls="panel-review" data-tab="review">Review</button>
+      <button class="tab" role="tab" id="tab-papers" aria-controls="panel-papers" data-tab="papers">Papers <span class="count">10</span></button>
+      <button class="tab" role="tab" id="tab-rubric" aria-controls="panel-rubric" data-tab="rubric">Scoring</button>
     </div>
-    <div class="panel" role="tabpanel" id="panel-papers" aria-labelledby="tab-papers" hidden></div>
-    <div class="panel" role="tabpanel" id="panel-review" aria-labelledby="tab-review" hidden></div>
+    <div class="panel" role="tabpanel" id="panel-opportunities" aria-labelledby="tab-opportunities" hidden></div>
     <div class="panel" role="tabpanel" id="panel-topics" aria-labelledby="tab-topics" hidden></div>
-    <div class="panel" role="tabpanel" id="panel-trials" aria-labelledby="tab-trials" hidden></div>
+    <div class="panel" role="tabpanel" id="panel-review" aria-labelledby="tab-review" hidden></div>
+    <div class="panel" role="tabpanel" id="panel-papers" aria-labelledby="tab-papers" hidden></div>
     <div class="panel" role="tabpanel" id="panel-rubric" aria-labelledby="tab-rubric" hidden></div>
   </div>
 </section>
@@ -814,9 +851,9 @@ function renderResults(r) {
     (failed.length ? `</p><p class="warn">${failed.map(([k, why]) => `<b>Couldn't use ${esc(src.labels[k] || k)}</b>: ${esc(why)}.`).join("<br>")}
       Results come from the other sources.` : "");
   $("#mini-q").value = "";
-  renderPapers(r); renderReview(r); renderTopics(r); renderTrials(r); renderRubric(r);
+  renderOpportunities(r); renderPapers(r); renderReview(r); renderTopics(r); renderRubric(r);
   show("results");
-  selectTab("review");
+  selectTab("opportunities");
 }
 
 document.querySelector(".tabs").addEventListener("click", e => {
@@ -837,14 +874,15 @@ function selectTab(name) {
     $("#panel-" + t.dataset.tab).hidden = !on;
     if (on) t.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
-  if (name === "topics" && state.result) drawChart(state.result);
+  if (name === "topics" && state.result) { drawGapMap(state.result); drawChart(state.result); }
 }
 
 function clusterName(r, i) { return (r.clusters.series.find(s => s.cluster === i) || {}).name || "Other"; }
 
 function renderPapers(r) {
   $("#tab-papers .count").textContent = r.papers.length;
-  $("#panel-papers").innerHTML = r.papers.map(p => {
+  $("#panel-papers").innerHTML = `<p class="evidence-note">The ${r.papers.length} papers every opportunity and review claim cites.
+    Numbers in brackets elsewhere link here.</p>` + r.papers.map(p => {
     const authors = p.authors.length > 3 ? p.authors.slice(0, 3).join(", ") + " et al." : p.authors.join(", ");
     const level = p.level ? r.rubric.find(x => x.level === p.level) : null;
     return `<article class="paper" id="paper-${p.rank}">
@@ -922,6 +960,8 @@ function renderReview(r) {
   }
   const full = r.papers.filter(p => p.source_text_kind === "full_text").length;
   $("#panel-review").innerHTML = `
+    <p class="evidence-note">Evidence for the opportunities: what the top ${r.papers.length} papers found, and where they fall short.
+      The <b>Limitations</b> section is where most gaps come from.</p>
     ${verifyBanner(r.review.verification)}
     <p class="overview">${citeLinks(r.review.overview, r)}</p>
     ${r.review.sections.map((s, i) => `
@@ -935,29 +975,59 @@ function renderReview(r) {
       (${full} full text, ${r.papers.length - full} abstract only). Numbers in brackets link to the paper list.
       Check claims against the papers before citing them.</p>`;
 }
-$("#panel-review").addEventListener("click", e => {
+$("#panel-opportunities").addEventListener("click", e => {
+  const c = e.target.closest("[data-cluster]");
+  if (c) { selectTab("topics"); $("#gapmap-box").scrollIntoView({ behavior: "smooth", block: "center" }); }
+});
+["#panel-review", "#panel-opportunities"].forEach(sel => $(sel).addEventListener("click", e => {
   const b = e.target.closest(".cite");
   if (!b) return;
   selectTab("papers");
   const el = $("#paper-" + b.dataset.rank);
   el.scrollIntoView({ behavior: "smooth", block: "center" });
   el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
-});
+}));
+
+function recentShare(r, s) {
+  // Saved runs from before the gap map lack recent_share; rebuild it from the yearly totals.
+  if (s.recent_share != null) return s.recent_share;
+  const cutoff = new Date(r.created_at).getFullYear() - 1;
+  const before = s.points.filter(p => p.year < cutoff).at(-1);
+  return s.size ? (s.size - (before ? before.count : 0)) / s.size : 0;
+}
+function gapsByCluster(r) {
+  const out = {};
+  ((r.opportunities && r.opportunities.gaps) || []).forEach((g, i) => {
+    if (g.cluster != null) (out[g.cluster] = out[g.cluster] || []).push(i + 1);
+  });
+  return out;
+}
 
 function renderTopics(r) {
   const c = r.clusters;
   const byId = Object.fromEntries(r.papers.map(p => [p.paper_id, p]));
+  const gaps = gapsByCluster(r);
+  const total = c.series.reduce((a, s) => a + s.size, 0);
+  const overall = c.series.reduce((a, s) => a + recentShare(r, s) * s.size, 0) / Math.max(1, total);
   $("#panel-topics").innerHTML = `
-    <p class="method" style="margin-top:0">All ${r.n_candidates} candidates were grouped by meaning
-      (embeddings of title and abstract, k-means). Each line counts how many papers in a topic had appeared
-      by each year; dots mark the top 10.</p>
+    <p class="evidence-note">Evidence for the opportunities: which parts of this topic are small and still growing.</p>
+    <h2 class="sub" style="margin-top:0">Where the gaps are</h2>
+    <p class="method" style="margin-top:0">All ${r.n_candidates} candidates were grouped by meaning into ${c.series.length} topics. Each circle is one
+      topic: <b>further right</b> means more papers (more crowded), <b>higher</b> means more of its papers are from the last two years
+      (faster growing). The dashed lines are the averages (${Math.round(overall * 100)}% recent overall). The <b>top-left corner</b>,
+      small and growing, is where open questions usually are. Numbered badges mark the opportunities on the first tab.</p>
+    <div class="chart-box" id="gapmap-box"></div>
+    <h2 class="sub">How each topic grew</h2>
+    <p class="method" style="margin-top:0">Each line is a running total of papers in a topic. A steep line is a topic that is
+      growing fast; a flat line is one that has settled. Circles mark the top 10 papers.</p>
     <div class="legend" id="legend">${c.series.map(s =>
       `<span><span class="swatch" style="background:${color(s.cluster)}"></span>${esc(s.name)} <span style="color:var(--faint)">(${s.size})</span></span>`).join("")}
       <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="var(--surface)" stroke="var(--text)" stroke-width="2"/></svg> top-10 paper</span></div>
     <div class="chart-box" id="chart-box"><div class="tooltip" id="tip" style="opacity:0"></div></div>
     <div class="clusters">${c.series.map(s => `
       <div class="cluster"><h3><span class="dot" style="background:${color(s.cluster)}"></span>${esc(s.name)}</h3>
-        <p>${s.size} papers · ${s.top_papers.length} in the top 10</p>
+        <p>${s.size} papers · ${Math.round(recentShare(r, s) * 100)}% from the last two years · ${s.top_papers.length} in the top 10
+          ${gaps[s.cluster] ? `<br><b style="color:var(--accent-strong)">Opportunity ${gaps[s.cluster].join(", ")}</b>` : ""}</p>
         ${s.top_papers.length ? `<ul>${s.top_papers.map(id => byId[id]).filter(Boolean)
           .sort((a, b) => a.rank - b.rank).map(p => `<li>#${p.rank} ${esc(p.title)}</li>`).join("")}</ul>` : ""}
       </div>`).join("")}</div>
@@ -965,6 +1035,55 @@ function renderTopics(r) {
       <div class="table-scroll"><table><thead><tr><th>Year</th>${c.series.map(s => `<th>${esc(s.name)}</th>`).join("")}</tr></thead>
       <tbody>${c.years.map((y, i) => `<tr><td>${y}</td>${c.series.map(s => `<td class="num">${s.points[i].count}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
     </details>`;
+}
+
+function drawGapMap(r) {
+  // Topic size (x) against how recent its papers are (y): the same crowding-versus-momentum
+  // view the landscape uses for whole fields, inside one search.
+  const box = $("#gapmap-box"), c = r.clusters;
+  if (!box) return;
+  box.innerHTML = "";
+  const total = c.series.reduce((a, s) => a + s.size, 0);
+  if (!total) return;
+  const gaps = gapsByCluster(r);
+  const pts = c.series.map(s => ({ s, share: s.size / total, recent: recentShare(r, s) }));
+  const overall = pts.reduce((a, p) => a + p.recent * p.s.size, 0) / total;
+  const W = Math.max(320, box.clientWidth - 16), H = Math.round(Math.min(380, Math.max(260, W * 0.48)));
+  const m = { l: 62, r: 20, t: 22, b: 40 };
+  const maxX = Math.min(1, Math.max(...pts.map(p => p.share)) * 1.25);
+  // 6% headroom at both ends so topics at 0% or 100% recent aren't cut in half by the frame.
+  const x = v => m.l + v / maxX * (W - m.l - m.r), y = v => H - m.b - (v + 0.06) / 1.12 * (H - m.t - m.b);
+  const avgX = 1 / c.series.length;
+  let svg = `<svg class="gapmap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Topic size against share of recent papers">`;
+  svg += `<rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="none" stroke="var(--border)"/>`;
+  svg += `<line x1="${x(avgX)}" x2="${x(avgX)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--faint)" stroke-dasharray="4 4"/>`;
+  svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(overall)}" y2="${y(overall)}" stroke="var(--faint)" stroke-dasharray="4 4"/>`;
+  svg += `<text class="qlabel" x="${m.l + 8}" y="${m.t + 16}">Small, growing: likely gaps</text>`;
+  svg += `<text class="qlabel" x="${W - m.r - 8}" y="${m.t + 16}" text-anchor="end">Large, growing: crowded</text>`;
+  svg += `<text class="qlabel" x="${m.l + 8}" y="${H - m.b - 8}">Small, quiet: niche</text>`;
+  svg += `<text class="qlabel" x="${W - m.r - 8}" y="${H - m.b - 8}" text-anchor="end">Large, settled: established</text>`;
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => svg += `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v * 100}%</text>`);
+  svg += `<text x="${(m.l + W - m.r) / 2}" y="${H - 10}" text-anchor="middle">Share of all candidate papers →</text>`;
+  svg += `<text x="14" y="${(m.t + H - m.b) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(m.t + H - m.b) / 2})">Published in the last 2 years →</text>`;
+  const placed = [];
+  for (const p of pts.sort((a, b) => b.s.size - a.s.size)) {
+    const cx = x(p.share), cy = y(p.recent), rad = 7 + 14 * Math.sqrt(p.share);
+    svg += `<circle cx="${cx}" cy="${cy}" r="${rad}" fill="${color(p.s.cluster)}" fill-opacity=".8"><title>${esc(p.s.name)}: ${p.s.size} papers, ${Math.round(p.recent * 100)}% recent</title></circle>`;
+    const ids = gaps[p.s.cluster] || [];
+    ids.forEach((n, j) => {
+      const bx = cx + rad * 0.75 + j * 18, by = cy - rad * 0.75;
+      svg += `<circle class="badge" cx="${bx}" cy="${by}" r="9"/><text class="badge-text" x="${bx}" y="${by + 4}" text-anchor="middle">${n}</text>`;
+    });
+    const name = p.s.name.length > 30 ? p.s.name.slice(0, 29) + "…" : p.s.name;
+    const right = cx < (m.l + W - m.r) / 2;
+    let ly = cy + rad + 14;
+    if (ly > H - m.b - 4) ly = cy - rad - 8;
+    while (placed.some(q => Math.abs(q - ly) < 14)) ly += 14;
+    placed.push(ly);
+    svg += `<text class="name" x="${right ? Math.max(m.l + 4, cx - rad) : Math.min(W - m.r - 4, cx + rad)}" y="${ly}"
+      text-anchor="${right ? "start" : "end"}">${esc(name)}</text>`;
+  }
+  box.innerHTML = svg + "</svg>";
 }
 
 function drawChart(r) {
@@ -1055,26 +1174,23 @@ function niceTicks(max) {
 let resizeTimer;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => { if (!$("#panel-topics").hidden && state.result) drawChart(state.result); }, 120);
+  resizeTimer = setTimeout(() => { if (!$("#panel-topics").hidden && state.result) { drawGapMap(state.result); drawChart(state.result); } }, 120);
 });
 
-function renderTrials(r) {
-  const tab = $("#tab-trials");
-  tab.hidden = !Array.isArray(r.trials);          // hidden when ClinicalTrials.gov wasn't searched
-  if (tab.hidden) return;
-  tab.querySelector(".count").textContent = r.trials.length;
-  if (!r.trials.length) {
-    $("#panel-trials").innerHTML = `<div class="empty-state"><h2>No registered trials found</h2>
-      <p>${r.trials_error ? `ClinicalTrials.gov couldn't be reached (${esc(r.trials_error)}).`
-         : "ClinicalTrials.gov had no studies matching this search. Shorter keywords (a condition plus an intervention) work best there."}</p></div>`;
-    return;
-  }
+function trialsBlock(r) {
+  // Registered trials are evidence of where clinical attention is going, not findings.
+  if (!Array.isArray(r.trials)) return "";
+  const withResults = r.trials.filter(t => t.has_results).length;
+  if (!r.trials.length) return `<details class="checks" style="margin-top:22px"><summary>Registered trials: none found</summary>
+    <p class="note">${r.trials_error ? `ClinicalTrials.gov couldn't be reached (${esc(r.trials_error)}).`
+      : "ClinicalTrials.gov had no studies matching this search. Shorter keywords (a condition plus an intervention) work best there."}</p></details>`;
   const active = ["Recruiting", "Not yet recruiting", "Enrolling by invitation", "Active not recruiting"];
   const stopped = ["Terminated", "Withdrawn", "Suspended"];
-  $("#panel-trials").innerHTML = `
-    <p class="method" style="margin-top:0">Registered studies from ClinicalTrials.gov that match your search. They are listed
-      as the registry ranks them and are <b>not</b> part of the paper ranking or the review: a registration says what a
-      team planned to study, not what it found.</p>
+  return `<h2 class="sub">Evidence: registered trials</h2>
+    <p class="method" style="margin-top:0">${r.trials.length} matching studies on ClinicalTrials.gov, ${withResults} with results posted.
+      Trials show where clinical attention and funding are going. A registration says what a team planned, not what it found,
+      so trials are never ranked as papers.</p>
+    <details class="checks"><summary>Show the ${r.trials.length} trials</summary>
     ${r.trials.map(t => `<article class="trial">
       <h3><a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.title)}</a></h3>
       <div class="byline">${esc(t.nct_id)}${t.sponsor ? " · " + esc(t.sponsor) : ""}${t.start ? " · started " + esc(t.start) : ""}${t.completion ? " · primary completion " + esc(t.completion) : ""}</div>
@@ -1088,7 +1204,73 @@ function renderTrials(r) {
       </div>
       ${t.interventions.length ? `<p class="rationale">Intervention: ${esc(t.interventions.join(", "))}</p>` : ""}
       ${t.summary ? `<details class="abstract"><summary>Summary</summary><p>${esc(t.summary)}</p></details>` : ""}
-    </article>`).join("")}`;
+    </article>`).join("")}</details>`;
+}
+
+function fieldRead(r, o) {
+  const f = r.landscape;
+  if (!f) return "";
+  const m = f.metrics || {}, s = f.scores || {}, q = f.quality || {};
+  const ranked = !!f.quadrant;
+  return `<div class="field-read">
+    <h3>Field: ${esc(f.label)} ${f.signal ? `<span class="sig ${esc(f.signal)}">${esc(f.signal)}</span>` : ""}
+      ${ranked ? `<span class="tag level">${esc(f.quadrant)}</span>` : `<span class="tag">Provisional, not ranked yet</span>`}</h3>
+    ${o && o.field_read ? `<p style="margin:0">${esc(o.field_read)}</p>` : ""}
+    ${ranked ? `<div class="kv">
+      <span>Momentum <b>${fmt(m.momentum, 0)}</b></span><span>Crowding <b>${fmt(m.crowding, 0)}</b></span>
+      <span>ML whitespace <b>${fmt(m.whitespace, 0)}</b></span><span>Entry score <b>${fmt(s.entry_score, 1)}</b></span>
+      <span>Warrant gap <b>${q.warrant_gap == null ? "–" : Math.round(q.warrant_gap * 100) + "%"}</b></span>
+      <span>Searches so far <b>${q.observations || 0}</b></span></div>
+      <p class="note" style="margin:8px 0 0">Percentiles among the mapped healthcare AI fields (0–100). Warrant gap = share of extracted papers without external validation.
+        <a href="#how" data-how>How these are scored</a> · <a href="/landscape" target="_blank" rel="noopener">Landscape map ↗</a></p>` : ""}
+  </div>`;
+}
+
+function renderOpportunities(r) {
+  const o = r.opportunities;
+  if (!o) {
+    $("#panel-opportunities").innerHTML = fieldRead(r, null) + `<div class="empty-state"><h2>${r.has_llm === false
+      ? "Opportunities need an API key" : "Opportunities weren't written for this search"}</h2>
+      <p>${r.has_llm === false ? `This search ran without <code>ANTHROPIC_API_KEY</code>. The gap map on the
+        <b>Topic clusters</b> tab still shows which topics are small and growing.`
+        : "This search was saved before the Opportunities tab existed, or the step failed. Run the search again to get them."}</p></div>` + trialsBlock(r);
+    return;
+  }
+  const strength = { strong: "Strong evidence", moderate: "Moderate evidence", weak: "Thin evidence" };
+  const prev = (r.landscape && r.landscape.previous_opportunities) || [];
+  const now = new Set(o.gaps.map(g => g.title.toLowerCase()));
+  const earlier = prev.filter(x => !now.has(x.title.toLowerCase()));
+  $("#panel-opportunities").innerHTML = `
+    <p class="overview">${citeLinks(o.bottom_line, r)}</p>
+    ${fieldRead(r, o)}
+    ${verifyBanner(o.verification)}
+    ${o.gaps.map((g, i) => `<article class="opp-card" aria-labelledby="gap-${i}">
+      <h2 id="gap-${i}"><span class="num">${i + 1}</span><span>${esc(g.title)}</span></h2>
+      <div class="opp-meta">
+        ${g.evidence_strength ? `<span class="tag ${g.evidence_strength === "strong" ? "evidence" : ""}">${strength[g.evidence_strength]}</span>` : ""}
+        ${g.cluster != null ? `<button class="chip-btn" type="button" data-cluster="${g.cluster}"><span class="dot" style="background:${color(g.cluster)}"></span>${esc(clusterName(r, g.cluster))} · see on gap map</button>` : ""}
+        ${g.mvp.difficulty ? `<span class="tag">MVP difficulty: ${esc(g.mvp.difficulty)}</span>` : ""}
+        ${g.mvp.effort_weeks ? `<span class="tag">~${g.mvp.effort_weeks} weeks</span>` : ""}
+        ${checkChip(g.check)}
+      </div>
+      <h4>Why it's open</h4><p>${citeLinks(g.why_open, r)}</p>
+      <h4>Why it still holds</h4><p>${citeLinks(g.defense, r)}</p>
+      ${g.angles.length ? `<h4>Angles</h4><ul class="angles">${g.angles.map(a => `<li><b>${esc(a.angle)}.</b> ${esc(a.how)}</li>`).join("")}</ul>` : ""}
+      <div class="mvp"><h3>MVP: ${esc(g.mvp.title)}</h3><dl>
+        <dt>Question</dt><dd>${esc(g.mvp.question)}</dd>
+        <dt>Data</dt><dd>${esc(g.mvp.data)}</dd>
+        <dt>Method</dt><dd>${esc(g.mvp.method)}</dd>
+        <dt>Validation</dt><dd>${esc(g.mvp.validation)}</dd>
+        <dt>Why it signals quality</dt><dd>${esc(g.mvp.signal)}</dd></dl></div>
+      ${checkDetails(g.check, r)}
+    </article>`).join("")}
+    ${earlier.length ? `<h2 class="sub">Gaps earlier searches found in this field</h2>
+      <p class="method" style="margin-top:0">The landscape remembers them, and each new search in the field is asked to confirm, sharpen or retire them.</p>
+      <ul class="plain-list">${earlier.slice().reverse().map(x => `<li><b>${esc(x.title)}</b>${x.mvp ? ` · MVP: ${esc(x.mvp)}` : ""} <span style="color:var(--faint)">(${esc(x.date)}, “${esc(x.topic)}”)</span></li>`).join("")}</ul>` : ""}
+    ${trialsBlock(r)}
+    <p class="note">Written by ${esc(o.model)} from the extractions of the top ${r.papers.length} papers, the topic clusters, the registered
+      trials and this field's place in the research landscape. ${o.verification ? `Each gap's argument was audited by a separate checker
+      (${esc(o.verification.model)}) that sees only the papers' abstracts and evidence quotes.` : ""} Treat these as hypotheses to test, not conclusions.</p>`;
 }
 
 function renderRubric(r) {
@@ -1185,7 +1367,7 @@ $("#how-back").addEventListener("click", e => {
 
 function pct(x) { return x === null || x === undefined ? "–" : Math.round(x * 100) + "%"; }
 function step(title, tag, body) {
-  const cls = tag === "Claude" ? "tag llm" : "tag";
+  const cls = tag === "Claude" ? "step-tag llm" : "step-tag";
   return `<li><h3>${title}${tag ? ` <span class="${cls}">${tag}</span>` : ""}</h3>${body}</li>`;
 }
 
@@ -1195,8 +1377,8 @@ function howPage(f) {
   const lensW = Math.round(f.lens_weight * 100);
   const terms = K.ai_terms.map(t => `“${esc(t)}”`).join(", ");
   const search = `
-    <h2 class="part" id="how-search">Part 1 · From your keywords to ten reviewed papers</h2>
-    <p class="how-intro">One search runs these steps in order. Steps tagged <span class="tag llm">Claude</span> need
+    <h2 class="part" id="how-search">Part 1 · From your keywords to opportunities to contribute</h2>
+    <p class="how-intro">One search runs these steps in order. Steps tagged <span class="step-tag llm">Claude</span> need
       <code>ANTHROPIC_API_KEY</code>. Without it they are skipped: papers are ranked by the local models alone, and
       topic clusters and the landscape still update.</p>
     <ol class="steps">
@@ -1208,8 +1390,8 @@ function howPage(f) {
         Both are shown at the top of every result.</p>`)}
       ${step("Sources are searched in parallel", "Web", `<p>${srcs}. Papers without an abstract are dropped.
         A paper found in several sources is <b>merged into one</b> by DOI, arXiv ID or title, keeping the best
-        details from each. ClinicalTrials.gov (up to ${f.trials_limit} studies) is searched alongside and shown in its own tab,
-        but trials are <b>never ranked as papers</b>.</p>`)}
+        details from each. ClinicalTrials.gov (up to ${f.trials_limit} studies) is searched alongside. Trials are used as evidence for the
+        opportunities but are <b>never ranked as papers</b>.</p>`)}
       ${step("Two local models rank every candidate", "Free, on your computer", `<p><b>MiniLM</b> and <b>BGE</b> are
         cross-encoders: each reads “topic + criteria” and one paper's title and abstract <b>together</b>, and outputs a
         raw score that is squashed to 0–1. The two scores are averaged.</p>
@@ -1239,7 +1421,17 @@ ties broken by the local score; the top ${f.top_n} are kept</div>`)}
         cleanly). Claude names each group, or the two most distinctive words do without a key. The chart shows papers per group per year.</p>`)}
       ${step("The research landscape is updated", "Free, on your computer", `<p>The search becomes one piece of evidence
         about its research field. Part 2 explains how.</p>`)}
-    </ol>`;
+      ${step("Opportunities to contribute are written", "Claude", `<p>One call reads everything above: the extractions of the
+        top ${f.top_n}, the topic clusters (which are small and growing), the registered trials, the field's numbers in the
+        landscape, the standing mental model in <code>landscape/CONTEXT.md</code>, and the gaps earlier searches in this field
+        proposed. It returns ${f.n_opportunities} <b>gaps</b>, each with why it's open (citing papers as [n]), the strongest
+        objection and why the gap still holds, 2–3 <b>angles</b>, and an <b>MVP</b> project (question, data, method, validation,
+        why it signals quality, effort).</p>
+        <p>The <b>same independent checker</b> then audits each gap's cited claims. The gap titles are saved to the field, so the
+        next search in that field confirms, sharpens or retires them. That is how the map builds up over many searches.</p>`)}
+    </ol>
+    <p class="how-intro">Everything else in the results (topic clusters, review, papers, scoring rubric) is the <b>evidence</b>
+      behind the opportunities.</p>`;
 
   const update = `
     <h2 class="part" id="how-landscape">Part 2 · How the landscape updates itself</h2>

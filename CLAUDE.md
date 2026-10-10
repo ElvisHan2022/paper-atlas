@@ -14,6 +14,8 @@ Python 3.11, conda env `atlas`, Windows-first (use `pathlib`, no shell-specific 
   DOI or title) + ClinicalTrials.gov (own tab, never ranked as papers)
 - `score.py` cross-encoders (MiniLM, BGE) + LLM judge · `extract.py` structured extraction
 - `pipeline.py` review writer + independent verifier + topic clusters + step log
+- `opportunities.py` the first results tab: cited gaps, angles and MVPs, audited by the same
+  verifier; every other tab is evidence for it
 - `llm.py` the only place that calls the Anthropic API (JSON, retry once, optional cache)
 - `config.py` every model name, price, threshold, source limit and lens
 - `templates/app.html` the whole UI (plain HTML/CSS/JS, no build step)

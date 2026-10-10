@@ -93,6 +93,7 @@ def method_facts():
         "rubric": [{"level": lv, "label": label, "description": desc}
                    for lv, label, desc in pipeline.RUBRIC],
         "review_sections": [label for _, label in pipeline.REVIEW_SECTIONS],
+        "n_opportunities": config.N_OPPORTUNITIES,
         "landscape_knobs": {
             "alpha": config.LANDSCAPE_ALPHA, "match_threshold": config.LANDSCAPE_MATCH_THRESHOLD,
             "default_fit": config.LANDSCAPE_DEFAULT_FIT, "min_extracted": config.LANDSCAPE_MIN_EXTRACTED,

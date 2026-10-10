@@ -42,19 +42,19 @@ The search is a fixed workflow, not a free-roaming agent, because its steps are 
 
 - **Sources** are searched in parallel.
 - **The LLM judge and extraction** run one call per paper, six at a time.
-- **The five review sections** are verified in parallel.
+- **The five review sections**, and the three opportunities, are verified in parallel.
 
 Two rules from that guidance shape the rest:
 
 - **The writer never grades its own work.** The review is audited by a separate call that didn't write it. That checker sees only the papers' abstracts and evidence quotes, and marks each claim supported, partly supported or not supported.
-- **Failure is cheap.** Every step is logged to `outputs/runs/<run>.log.jsonl` as it happens, and HTTP and LLM answers are cached, so re-running a failed search replays the finished steps for free. The log is shown at the bottom of the Scoring rubric tab.
+- **Failure is cheap.** Every step is logged to `outputs/runs/<run>.log.jsonl` as it happens, and HTTP and LLM answers are cached, so re-running a failed search replays the finished steps for free. The log is shown at the bottom of the Scoring tab.
 
-Results open in five tabs:
-- **Candidate papers:** the top 10, with scores, the judge's reasoning, evidence type (RCT, meta-analysis…) and venue type.
-- **Systematic review:** five sections (study design, methods, results, limitations, discussion), with every claim linked to its papers and marked by the independent check.
-- **Topic clusters:** a line chart of papers per topic over time.
-- **Clinical trials:** registered studies from ClinicalTrials.gov, with status, phase, enrollment and whether results are posted.
-- **Scoring rubric:** how the papers were ranked, plus the step log for the search.
+Results open on **Opportunities to contribute**. Everything after it is the evidence behind it:
+- **Opportunities to contribute:** three research gaps for this topic. Each one says why it is open (citing the papers), answers the strongest objection, offers 2–3 angles in, and proposes an MVP project (question, data, method, validation, why it signals quality, rough effort). The same independent checker audits each gap's cited claims. The tab also shows where the topic's field sits in the research landscape, the gaps earlier searches in that field proposed (the landscape remembers them), and matching registered trials from ClinicalTrials.gov as evidence.
+- **Topic clusters:** a gap map (each topic's size against how much of it is from the last two years; small and growing means likely gaps, with the opportunities marked), plus a line chart of how each topic grew.
+- **Review:** five sections (study design, methods, results, limitations, discussion), with every claim linked to its papers and marked by the independent check.
+- **Papers:** the top 10, with scores, the judge's reasoning, evidence type (RCT, meta-analysis…) and venue type.
+- **Scoring:** how the papers were ranked, plus the step log for the search.
 
 **How it works** (link at the bottom of the home page, or http://127.0.0.1:8000/#how) explains every step, from your keywords to the landscape update, with the numbers read live from `config.py`, and shows the current landscape and anything waiting for your review. The crowding-versus-momentum map is at http://127.0.0.1:8000/landscape.
 
