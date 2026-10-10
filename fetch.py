@@ -35,16 +35,18 @@ def _wait_for_slot(host, min_interval):
         _last_request_at[host] = time.time()
 
 
-def cached_get(url, params=None, kind="json", min_interval=1.0, headers=None):
+def cached_get(url, params=None, kind="json", min_interval=1.0, headers=None, max_age_days=None):
     """GET a URL and cache the body on disk (keyed by URL hash) so reruns never refetch.
 
     kind="json" returns parsed JSON; kind="text" returns the raw text (PubMed and arXiv
-    answer in XML).
+    answer in XML). max_age_days refetches older copies, for counts that keep growing.
     """
     full_url = requests.Request("GET", url, params=params).prepare().url
     key = hashlib.sha256(full_url.encode()).hexdigest()[:32]
     path = config.CACHE_DIR / "http" / f"{key}.{'json' if kind == 'json' else 'txt'}"
-    if path.exists():
+    fresh = max_age_days is None or (path.exists()
+                                     and time.time() - path.stat().st_mtime < max_age_days * 86400)
+    if path.exists() and fresh:
         body = path.read_text(encoding="utf-8")
         return json.loads(body) if kind == "json" else body
 

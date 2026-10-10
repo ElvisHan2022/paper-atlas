@@ -1,0 +1,12 @@
+{
+  "meta": {"count": 412, "db_response_time_ms": 41, "page": 1, "per_page": 25, "groups_count": 6},
+  "results": [],
+  "group_by": [
+    {"key": "2025", "key_display_name": "2025", "count": 140},
+    {"key": "2024", "key_display_name": "2024", "count": 96},
+    {"key": "2023", "key_display_name": "2023", "count": 61},
+    {"key": "2026", "key_display_name": "2026", "count": 58},
+    {"key": "2022", "key_display_name": "2022", "count": 31},
+    {"key": "2021", "key_display_name": "2021", "count": 26}
+  ]
+}
