@@ -16,6 +16,7 @@ import numpy as np
 import config
 import db
 import extract
+import landscape
 import llm
 import score
 import sources
@@ -582,6 +583,17 @@ def _run(query, report, source_names, lens_key):
         p["cluster"] = cluster_of[p["paper_id"]]
     log("clusters", topics=len(clusters["series"]))
 
+    # The run is evidence about its research field; the map must never break a search.
+    report(3, 0.93, "Updating the research landscape")
+    try:
+        field = landscape.update_from_run(query)
+        log("landscape", field=field["field"], status=field["status"], regime=field["quadrant"],
+            entry_score=field["entry_score"], changes=len(field["changes"]),
+            suggestions=len(field["suggestions"]))
+    except Exception as e:
+        field = None
+        log("landscape", error=f"{type(e).__name__}: {e}"[:300])
+
     def level_counts(key):
         vals = [p["scores"][key] for p in shortlist if p["scores"][key] is not None]
         return {lv: sum(1 for v in vals if round(v * 4) + 1 == lv) for lv in range(1, 6)}
@@ -597,6 +609,7 @@ def _run(query, report, source_names, lens_key):
         "sources": {"searched": source_names, "counts": counts, "errors": errors,
                     "labels": config.SOURCES},
         "trials": trials, "trials_error": trials_error,
+        "landscape": field,
         "lens": {"key": lens_key if lens_key in config.LENSES else "balanced", **lens},
         "lens_weight": config.LENS_WEIGHT,
         "models": {"minilm": config.CROSS_ENCODERS["minilm"],

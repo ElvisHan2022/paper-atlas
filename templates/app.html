@@ -1094,7 +1094,7 @@ function renderRubric(r) {
 
 const STEP_NAMES = { start: "Started", query: "Understood the query", search: "Searched sources", rank: "Ranked with a local model",
   judge: "LLM judge", trials: "Searched ClinicalTrials.gov", extract: "Extracted study details", review: "Wrote the review", verify: "Independent check",
-  clusters: "Grouped into topics", done: "Finished", error: "Stopped with an error" };
+  clusters: "Grouped into topics", landscape: "Updated the research landscape", done: "Finished", error: "Stopped with an error" };
 function runLog(r) {
   if (!r.log || !r.log.length) return "";
   const detail = e => Object.entries(e).filter(([k]) => !["t", "step"].includes(k))
