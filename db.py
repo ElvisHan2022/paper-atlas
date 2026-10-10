@@ -8,7 +8,8 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS papers (
     paper_id TEXT PRIMARY KEY,
     title TEXT, abstract TEXT, year INTEGER, venue TEXT, citation_count INTEGER,
-    doi TEXT, arxiv_id TEXT, pdf_url TEXT, authors_json TEXT, source TEXT, topic TEXT
+    doi TEXT, arxiv_id TEXT, pdf_url TEXT, authors_json TEXT, source TEXT, topic TEXT,
+    publication_types TEXT
 );
 -- A paper can turn up under several topics; papers.topic keeps the first one,
 -- this table keeps all of them.
@@ -51,24 +52,33 @@ def connect(path=None):
 
 def init_schema(conn):
     conn.executescript(SCHEMA)
+    # Databases made before publication types were stored lack the column; add it.
+    columns = {r[1] for r in conn.execute("PRAGMA table_info(papers)")}
+    if "publication_types" not in columns:
+        conn.execute("ALTER TABLE papers ADD COLUMN publication_types TEXT")
     conn.commit()
 
 
 def upsert_paper(conn, p, topic):
-    """p is a raw Semantic Scholar paper dict."""
+    """p is a paper dict in Semantic Scholar's shape (sources.py converts the others)."""
     ext = p.get("externalIds") or {}
     pdf = (p.get("openAccessPdf") or {}).get("url") or None
     authors = [a.get("name") for a in (p.get("authors") or [])]
     conn.execute(
-        """INSERT INTO papers VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+        """INSERT INTO papers (paper_id, title, abstract, year, venue, citation_count, doi,
+                                 arxiv_id, pdf_url, authors_json, source, topic,
+                                 publication_types)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
            ON CONFLICT(paper_id) DO UPDATE SET
              title=excluded.title, abstract=excluded.abstract, year=excluded.year,
              venue=excluded.venue, citation_count=excluded.citation_count,
              doi=excluded.doi, arxiv_id=excluded.arxiv_id, pdf_url=excluded.pdf_url,
-             authors_json=excluded.authors_json""",
+             authors_json=excluded.authors_json,
+             publication_types=COALESCE(excluded.publication_types, papers.publication_types)""",
         (p["paperId"], p.get("title"), p.get("abstract"), p.get("year"), p.get("venue"),
          p.get("citationCount") or 0, ext.get("DOI"), ext.get("ArXiv"), pdf,
-         json.dumps(authors), p.get("source", "semantic_scholar"), topic),
+         json.dumps(authors), p.get("source", "semantic_scholar"), topic,
+         json.dumps(p["publicationTypes"]) if p.get("publicationTypes") is not None else None),
     )
     conn.execute("INSERT OR IGNORE INTO paper_topics VALUES (?,?)", (p["paperId"], topic))
 

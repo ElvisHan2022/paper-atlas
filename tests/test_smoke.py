@@ -398,3 +398,20 @@ def test_keyword_names_skip_plural_search_terms():
     texts = ["llms judge human raters agreement"] * 3 + ["llms digital twin simulation"] * 3
     names = keyword_names(texts, np.array([0, 0, 0, 1, 1, 1]), skip=["llm"])
     assert all("Llms" not in n for n in names)
+
+
+def test_old_database_gains_the_publication_types_column(tmp_path):
+    import json
+    import sqlite3
+
+    import db
+    path = tmp_path / "old.db"
+    conn = sqlite3.connect(path)
+    conn.execute("CREATE TABLE papers (paper_id TEXT PRIMARY KEY, title TEXT, abstract TEXT, "
+                 "year INTEGER, venue TEXT, citation_count INTEGER, doi TEXT, arxiv_id TEXT, "
+                 "pdf_url TEXT, authors_json TEXT, source TEXT, topic TEXT)")
+    conn.commit()
+    conn.close()
+    conn = db.connect(path)
+    db.upsert_paper(conn, {"paperId": "p", "title": "t", "publicationTypes": ["Review"]}, "q")
+    assert json.loads(conn.execute("SELECT publication_types FROM papers").fetchone()[0]) == ["Review"]
