@@ -5,3 +5,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 outputs/runs/
+landscape/private/
+landscape/field_scores.*
+outputs/landscape*

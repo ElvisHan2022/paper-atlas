@@ -1,0 +1,1453 @@
+{
+  "meta": {
+    "version": 1,
+    "seeded": "2026-10-09",
+    "index_totals": {
+      "arxiv_datacite": {
+        "2021": 181630,
+        "2025": 284486,
+        "2026ytd": 280540
+      }
+    },
+    "medrxiv": {
+      "overall_new": {
+        "2020": 14070,
+        "2021": 12739,
+        "2022": 10528,
+        "2023": 11049,
+        "2024": 12867,
+        "2025": 15027,
+        "2026ytd": 13654
+      },
+      "health_informatics_new": {
+        "2020": 403,
+        "2021": 363,
+        "2022": 345,
+        "2023": 461,
+        "2024": 638,
+        "2025": 799,
+        "2026ytd": 899
+      },
+      "hi_keyword_share_mar2022_vs_mar2025": {
+        "llm": [
+          0.0,
+          0.319
+        ],
+        "machine_learning": [
+          0.333,
+          0.208
+        ],
+        "wearable": [
+          0.095,
+          0.028
+        ],
+        "fairness_or_bias": [
+          0.024,
+          0.153
+        ],
+        "any_ai": [
+          0.357,
+          0.556
+        ]
+      }
+    },
+    "venues": {
+      "neurips_2025_accepted": 5290,
+      "neurips_2025_submissions": 21575,
+      "neurips_clinical_share_selfreport": {
+        "2024": 0.01,
+        "2025": 0.023
+      }
+    },
+    "weights": {
+      "opportunity": {
+        "momentum": 0.45,
+        "whitespace": 0.35,
+        "inverse_crowding": 0.2
+      },
+      "entry": {
+        "opportunity": 0.4,
+        "feasibility": 0.35,
+        "fit": 0.25
+      }
+    },
+    "fit": "Personal fit (0-3) is private: landscape/private/fit.csv (gitignored). Without it every field uses config.LANDSCAPE_DEFAULT_FIT, which is how the scores in this tracked seed were computed.",
+    "counts_source": "pubmed_connector"
+  },
+  "fields": [
+    {
+      "id": "dataset_shift",
+      "label": "Dataset shift and monitoring",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"dataset shift\" OR \"model drift\" OR \"performance drift\" OR \"distribution shift\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "\"distribution shift\" AND clinical (2026 value suspect)"
+      },
+      "priors": {
+        "data_access": 3,
+        "mvp_simplicity": 3,
+        "domain_access": 3
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Temporal and cross-site drift detection with performance-decay forecasting",
+      "open_data": "MIMIC-III vs MIMIC-IV; eICU multi-site",
+      "metrics": {
+        "momentum": 63.46,
+        "crowding": 21.15,
+        "whitespace": 23.08,
+        "evidence_maturity": 23.08,
+        "growth": 4.0,
+        "ai_growth": 4.06,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.58,
+        "rct_index": 0.01
+      },
+      "scores": {
+        "entry_score": 72.63,
+        "opportunity": 52.4,
+        "feasibility": 100.0,
+        "fit": 66.67
+      },
+      "quadrant": "Blooming",
+      "signal": "GO",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "GO",
+          "entry_score": 72.63
+        }
+      ]
+    },
+    {
+      "id": "llm_med",
+      "label": "LLMs in medicine",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"large language model\" OR \"large language models\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "(evaluation OR benchmark) AND (LLM OR LLMs) AND (medical OR clinical)"
+      },
+      "priors": {
+        "data_access": 3,
+        "mvp_simplicity": 3,
+        "domain_access": 3
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Calibration and abstention study of open medical LLMs on a held-out benchmark",
+      "open_data": "MedQA; HealthBench; MedGemma",
+      "metrics": {
+        "momentum": 100.0,
+        "crowding": 96.15,
+        "whitespace": 15.38,
+        "evidence_maturity": 19.23,
+        "growth": 7312.0,
+        "ai_growth": 5571.0,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.76,
+        "rct_index": 0.01
+      },
+      "scores": {
+        "entry_score": 72.13,
+        "opportunity": 51.15,
+        "feasibility": 100.0,
+        "fit": 66.67
+      },
+      "quadrant": "Hot and contested",
+      "signal": "GO",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "GO",
+          "entry_score": 72.13
+        }
+      ]
+    },
+    {
+      "id": "algo_fairness",
+      "label": "Algorithmic fairness",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"algorithmic bias\" OR \"algorithmic fairness\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "fairness AND clinical"
+      },
+      "priors": {
+        "data_access": 3,
+        "mvp_simplicity": 3,
+        "domain_access": 3
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Subgroup calibration audit plus mitigation for a deployed-style clinical model",
+      "open_data": "MIMIC-IV; eICU",
+      "metrics": {
+        "momentum": 85.64,
+        "crowding": 65.38,
+        "whitespace": 7.69,
+        "evidence_maturity": 11.54,
+        "growth": 17.9,
+        "ai_growth": 21.5,
+        "arxiv_growth": 5.3,
+        "ai_share_2025": 0.88,
+        "rct_index": 0.0
+      },
+      "scores": {
+        "entry_score": 70.93,
+        "opportunity": 48.15,
+        "feasibility": 100.0,
+        "fit": 66.67
+      },
+      "quadrant": "Hot and contested",
+      "signal": "GO",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "GO",
+          "entry_score": 70.93
+        }
+      ]
+    },
+    {
+      "id": "wearables",
+      "label": "Wearable sensing",
+      "status": "active",
+      "queries": {
+        "pubmed": "wearable OR wearables",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "wearable AND (health OR clinical OR patients) AND (learning OR neural)"
+      },
+      "priors": {
+        "data_access": 3,
+        "mvp_simplicity": 3,
+        "domain_access": 3
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Cross-cohort generalization benchmark for a wearable health classifier",
+      "open_data": "All of Us Fitbit; GLOBEM; PMData; UK Biobank accelerometry",
+      "metrics": {
+        "momentum": 44.87,
+        "crowding": 88.46,
+        "whitespace": 42.31,
+        "evidence_maturity": 53.85,
+        "growth": 1.76,
+        "ai_growth": 2.68,
+        "arxiv_growth": 1.7,
+        "ai_share_2025": 0.24,
+        "rct_index": 0.07
+      },
+      "scores": {
+        "entry_score": 66.59,
+        "opportunity": 37.31,
+        "feasibility": 100.0,
+        "fit": 66.67
+      },
+      "quadrant": "Crowded, decelerating",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 66.59
+        }
+      ]
+    },
+    {
+      "id": "tte",
+      "label": "Target trial emulation",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"target trial emulation\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 2,
+        "mvp_simplicity": 2,
+        "domain_access": 2
+      },
+      "skill_axis": "Causal",
+      "mvp_example": "Emulated trial replicating a known RCT result",
+      "open_data": "MIMIC-IV; UK Biobank",
+      "metrics": {
+        "momentum": 84.62,
+        "crowding": 3.85,
+        "whitespace": 84.62,
+        "evidence_maturity": 42.31,
+        "growth": 17.07,
+        "ai_growth": 21.0,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.04,
+        "rct_index": 0.05
+      },
+      "scores": {
+        "entry_score": 74.77,
+        "opportunity": 86.92,
+        "feasibility": 66.67,
+        "fit": 66.67
+      },
+      "quadrant": "Blooming",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 74.77
+        }
+      ]
+    },
+    {
+      "id": "readmission",
+      "label": "Hospital readmission",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"patient readmission\"[MeSH Terms]",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 3,
+        "mvp_simplicity": 3,
+        "domain_access": 3
+      },
+      "skill_axis": "ML",
+      "mvp_example": "30-day readmission model with fairness and transport audit",
+      "open_data": "MIMIC-IV; CMS public files",
+      "metrics": {
+        "momentum": 15.38,
+        "crowding": 30.77,
+        "whitespace": 88.46,
+        "evidence_maturity": 76.92,
+        "growth": 1.1,
+        "ai_growth": 1.56,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.04,
+        "rct_index": 0.28
+      },
+      "scores": {
+        "entry_score": 72.36,
+        "opportunity": 51.73,
+        "feasibility": 100.0,
+        "fit": 66.67
+      },
+      "quadrant": "Dormant whitespace (ML gap)",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 72.36
+        }
+      ]
+    },
+    {
+      "id": "ppg",
+      "label": "Photoplethysmography",
+      "status": "active",
+      "queries": {
+        "pubmed": "photoplethysmography",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 3,
+        "mvp_simplicity": 3,
+        "domain_access": 2
+      },
+      "skill_axis": "ML",
+      "mvp_example": "PPG AF or BP classifier fine-tuned from PaPaGei with subgroup error analysis",
+      "open_data": "MIMIC-IV waveforms; VitalDB; PaPaGei weights",
+      "metrics": {
+        "momentum": 32.69,
+        "crowding": 50.0,
+        "whitespace": 38.46,
+        "evidence_maturity": 61.54,
+        "growth": 1.61,
+        "ai_growth": 2.45,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.32,
+        "rct_index": 0.13
+      },
+      "scores": {
+        "entry_score": 63.05,
+        "opportunity": 38.17,
+        "feasibility": 88.89,
+        "fit": 66.67
+      },
+      "quadrant": "Crowded, decelerating",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 63.05
+        }
+      ]
+    },
+    {
+      "id": "ambient_scribe",
+      "label": "Ambient scribes",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"ambient scribe\" OR \"ambient documentation\" OR \"ambient AI\" OR \"ambient artificial intelligence\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "(scribe OR \"note generation\") AND clinical"
+      },
+      "priors": {
+        "data_access": 1,
+        "mvp_simplicity": 2,
+        "domain_access": 2
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Hallucination and omission evaluation of note generation",
+      "open_data": "ACI-Bench; MTS-Dialog",
+      "metrics": {
+        "momentum": 92.31,
+        "crowding": 15.38,
+        "whitespace": 11.54,
+        "evidence_maturity": 3.85,
+        "growth": 61.0,
+        "ai_growth": 50.0,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.82,
+        "rct_index": 0.0
+      },
+      "scores": {
+        "entry_score": 61.11,
+        "opportunity": 62.5,
+        "feasibility": 55.56,
+        "fit": 66.67
+      },
+      "quadrant": "Blooming",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 61.11
+        }
+      ]
+    },
+    {
+      "id": "cgm",
+      "label": "Continuous glucose monitoring",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"continuous glucose monitoring\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "\"continuous glucose\" AND (learning OR neural)"
+      },
+      "priors": {
+        "data_access": 2,
+        "mvp_simplicity": 3,
+        "domain_access": 2
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Glucose forecasting baseline vs time-series foundation model",
+      "open_data": "OhioT1DM; CGMacros; public CGM cohorts",
+      "metrics": {
+        "momentum": 58.85,
+        "crowding": 34.62,
+        "whitespace": 61.54,
+        "evidence_maturity": 88.46,
+        "growth": 1.69,
+        "ai_growth": 4.92,
+        "arxiv_growth": 2.34,
+        "ai_share_2025": 0.08,
+        "rct_index": 0.51
+      },
+      "scores": {
+        "entry_score": 68.33,
+        "opportunity": 61.1,
+        "feasibility": 77.78,
+        "fit": 66.67
+      },
+      "quadrant": "Blooming",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 68.33
+        }
+      ]
+    },
+    {
+      "id": "rwe",
+      "label": "Real-world evidence",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"real-world evidence\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 2,
+        "mvp_simplicity": 2,
+        "domain_access": 2
+      },
+      "skill_axis": "Causal",
+      "mvp_example": "Outcome model on EHR cohort with negative controls",
+      "open_data": "MIMIC-IV; Synthea",
+      "metrics": {
+        "momentum": 67.31,
+        "crowding": 42.31,
+        "whitespace": 80.77,
+        "evidence_maturity": 34.62,
+        "growth": 2.41,
+        "ai_growth": 5.24,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.06,
+        "rct_index": 0.03
+      },
+      "scores": {
+        "entry_score": 68.04,
+        "opportunity": 70.1,
+        "feasibility": 66.67,
+        "fit": 66.67
+      },
+      "quadrant": "Blooming",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 68.04
+        }
+      ]
+    },
+    {
+      "id": "mipd",
+      "label": "Model-informed precision dosing",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"model-informed precision dosing\" OR \"precision dosing\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 2,
+        "mvp_simplicity": 3,
+        "domain_access": 1
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Hybrid popPK plus ML dose-response model with external validation",
+      "open_data": "MIMIC-IV TDM records",
+      "metrics": {
+        "momentum": 69.23,
+        "crowding": 7.69,
+        "whitespace": 53.85,
+        "evidence_maturity": 50.0,
+        "growth": 2.17,
+        "ai_growth": 6.25,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.12,
+        "rct_index": 0.07
+      },
+      "scores": {
+        "entry_score": 67.38,
+        "opportunity": 68.46,
+        "feasibility": 66.67,
+        "fit": 66.67
+      },
+      "quadrant": "Blooming",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 67.38
+        }
+      ]
+    },
+    {
+      "id": "digital_biomarkers",
+      "label": "Digital biomarkers",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"digital biomarker\" OR \"digital biomarkers\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 2,
+        "mvp_simplicity": 2,
+        "domain_access": 2
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Validation study of a wearable-derived biomarker against a clinical reference",
+      "open_data": "All of Us; UK Biobank",
+      "metrics": {
+        "momentum": 44.23,
+        "crowding": 46.15,
+        "whitespace": 30.77,
+        "evidence_maturity": 30.77,
+        "growth": 2.34,
+        "ai_growth": 2.54,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.4,
+        "rct_index": 0.02
+      },
+      "scores": {
+        "entry_score": 56.58,
+        "opportunity": 41.44,
+        "feasibility": 66.67,
+        "fit": 66.67
+      },
+      "quadrant": "Quiet niche",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 56.58
+        }
+      ]
+    },
+    {
+      "id": "hypertension",
+      "label": "Hypertension",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"hypertension\"[MeSH Terms]",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 3,
+        "mvp_simplicity": 3,
+        "domain_access": 3
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Uncontrolled-BP prediction from EHR",
+      "open_data": "NHANES; MIMIC-IV",
+      "metrics": {
+        "momentum": 23.08,
+        "crowding": 53.85,
+        "whitespace": 96.15,
+        "evidence_maturity": 84.62,
+        "growth": 0.83,
+        "ai_growth": 2.93,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.03,
+        "rct_index": 0.45
+      },
+      "scores": {
+        "entry_score": 72.97,
+        "opportunity": 53.27,
+        "feasibility": 100.0,
+        "fit": 66.67
+      },
+      "quadrant": "Crowded, decelerating",
+      "signal": "SKIP",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "SKIP",
+          "entry_score": 72.97
+        }
+      ]
+    },
+    {
+      "id": "t2d",
+      "label": "Type 2 diabetes",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"diabetes mellitus, type 2\"[MeSH Terms]",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 3,
+        "mvp_simplicity": 3,
+        "domain_access": 3
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Incident T2D risk classifier with subgroup calibration audit",
+      "open_data": "NHANES; UK Biobank; MIMIC-IV",
+      "metrics": {
+        "momentum": 28.85,
+        "crowding": 61.54,
+        "whitespace": 92.31,
+        "evidence_maturity": 100.0,
+        "growth": 0.9,
+        "ai_growth": 3.5,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.04,
+        "rct_index": 0.65
+      },
+      "scores": {
+        "entry_score": 72.86,
+        "opportunity": 52.98,
+        "feasibility": 100.0,
+        "fit": 66.67
+      },
+      "quadrant": "Crowded, decelerating",
+      "signal": "SKIP",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "SKIP",
+          "entry_score": 72.86
+        }
+      ]
+    },
+    {
+      "id": "ecg",
+      "label": "ECG AI",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"electrocardiography\"[MeSH Terms]",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "ECG AND (learning OR neural)"
+      },
+      "priors": {
+        "data_access": 3,
+        "mvp_simplicity": 3,
+        "domain_access": 3
+      },
+      "skill_axis": "ML",
+      "mvp_example": "ECG foundation model linear probe vs CNN baseline with calibration",
+      "open_data": "MIMIC-IV-ECG; PTB-XL",
+      "metrics": {
+        "momentum": 17.18,
+        "crowding": 76.92,
+        "whitespace": 46.15,
+        "evidence_maturity": 80.77,
+        "growth": 0.79,
+        "ai_growth": 1.94,
+        "arxiv_growth": 1.5,
+        "ai_share_2025": 0.2,
+        "rct_index": 0.34
+      },
+      "scores": {
+        "entry_score": 63.07,
+        "opportunity": 28.5,
+        "feasibility": 100.0,
+        "fit": 66.67
+      },
+      "quadrant": "Crowded, decelerating",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 63.07
+        }
+      ]
+    },
+    {
+      "id": "digital_phenotyping",
+      "label": "Digital phenotyping",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"digital phenotyping\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "\"digital phenotyping\" OR \"passive sensing\""
+      },
+      "priors": {
+        "data_access": 2,
+        "mvp_simplicity": 3,
+        "domain_access": 2
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Depression detection with leave-one-cohort-out validation",
+      "open_data": "GLOBEM",
+      "metrics": {
+        "momentum": 46.03,
+        "crowding": 26.92,
+        "whitespace": 34.62,
+        "evidence_maturity": 38.46,
+        "growth": 1.82,
+        "ai_growth": 2.2,
+        "arxiv_growth": 2.34,
+        "ai_share_2025": 0.36,
+        "rct_index": 0.04
+      },
+      "scores": {
+        "entry_score": 62.87,
+        "opportunity": 47.44,
+        "feasibility": 77.78,
+        "fit": 66.67
+      },
+      "quadrant": "Quiet niche",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 62.87
+        }
+      ]
+    },
+    {
+      "id": "foundation_models",
+      "label": "Health foundation models",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"foundation model\" OR \"foundation models\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "EHR AND (\"foundation model\" OR pretraining)"
+      },
+      "priors": {
+        "data_access": 1,
+        "mvp_simplicity": 1,
+        "domain_access": 2
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Few-shot adaptation of an open EHR FM (MOTOR or CLMBR) on a new task",
+      "open_data": "EHRSHOT (gated); MOTOR weights",
+      "metrics": {
+        "momentum": 94.1,
+        "crowding": 73.08,
+        "whitespace": 19.23,
+        "evidence_maturity": 7.69,
+        "growth": 166.33,
+        "ai_growth": 667.0,
+        "arxiv_growth": 8.62,
+        "ai_share_2025": 0.67,
+        "rct_index": 0.0
+      },
+      "scores": {
+        "entry_score": 54.01,
+        "opportunity": 54.46,
+        "feasibility": 44.44,
+        "fit": 66.67
+      },
+      "quadrant": "Hot and contested",
+      "signal": "SKIP",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "SKIP",
+          "entry_score": 54.01
+        }
+      ]
+    },
+    {
+      "id": "metformin",
+      "label": "Metformin pharmacology",
+      "status": "active",
+      "queries": {
+        "pubmed": "metformin",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 2,
+        "mvp_simplicity": 2,
+        "domain_access": 2
+      },
+      "skill_axis": "Causal",
+      "mvp_example": "Treatment-response heterogeneity model",
+      "open_data": "MIMIC-IV; UK Biobank",
+      "metrics": {
+        "momentum": 46.15,
+        "crowding": 21.15,
+        "whitespace": 100.0,
+        "evidence_maturity": 92.31,
+        "growth": 1.05,
+        "ai_growth": 5.42,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.02,
+        "rct_index": 0.51
+      },
+      "scores": {
+        "entry_score": 68.62,
+        "opportunity": 71.54,
+        "feasibility": 66.67,
+        "fit": 66.67
+      },
+      "quadrant": "Dormant whitespace (ML gap)",
+      "signal": "SKIP",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "SKIP",
+          "entry_score": 68.62
+        }
+      ]
+    },
+    {
+      "id": "mci",
+      "label": "Mild cognitive impairment",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"cognitive dysfunction\"[MeSH Terms]",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 2,
+        "mvp_simplicity": 2,
+        "domain_access": 2
+      },
+      "skill_axis": "ML",
+      "mvp_example": "MCI screening classifier from speech or tests",
+      "open_data": "ADNI; DementiaBank; NACC",
+      "metrics": {
+        "momentum": 34.62,
+        "crowding": 69.23,
+        "whitespace": 73.08,
+        "evidence_maturity": 73.08,
+        "growth": 1.35,
+        "ai_growth": 2.59,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.06,
+        "rct_index": 0.24
+      },
+      "scores": {
+        "entry_score": 58.92,
+        "opportunity": 47.31,
+        "feasibility": 66.67,
+        "fit": 66.67
+      },
+      "quadrant": "Crowded, decelerating",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 58.92
+        }
+      ]
+    },
+    {
+      "id": "sepsis",
+      "label": "Sepsis prediction",
+      "status": "active",
+      "queries": {
+        "pubmed": "sepsis",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "sepsis AND (learning OR neural)"
+      },
+      "priors": {
+        "data_access": 3,
+        "mvp_simplicity": 3,
+        "domain_access": 2
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Leakage-controlled sepsis onset model (exclude post-recognition predictions)",
+      "open_data": "MIMIC-IV; eICU; PhysioNet 2019",
+      "metrics": {
+        "momentum": 30.26,
+        "crowding": 80.77,
+        "whitespace": 76.92,
+        "evidence_maturity": 69.23,
+        "growth": 1.15,
+        "ai_growth": 4.05,
+        "arxiv_growth": 1.24,
+        "ai_share_2025": 0.06,
+        "rct_index": 0.14
+      },
+      "scores": {
+        "entry_score": 65.53,
+        "opportunity": 44.38,
+        "feasibility": 88.89,
+        "fit": 66.67
+      },
+      "quadrant": "Crowded, decelerating",
+      "signal": "SKIP",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "SKIP",
+          "entry_score": 65.53
+        }
+      ]
+    },
+    {
+      "id": "value_based",
+      "label": "Value-based care",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"value-based payment\" OR \"value-based care\" OR \"value-based purchasing\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 2,
+        "mvp_simplicity": 2,
+        "domain_access": 2
+      },
+      "skill_axis": "Causal",
+      "mvp_example": "Risk adjustment model fairness audit under HCC v28",
+      "open_data": "CMS public use files",
+      "metrics": {
+        "momentum": 46.15,
+        "crowding": 11.54,
+        "whitespace": 65.38,
+        "evidence_maturity": 46.15,
+        "growth": 1.19,
+        "ai_growth": 4.43,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.07,
+        "rct_index": 0.05
+      },
+      "scores": {
+        "entry_score": 64.54,
+        "opportunity": 61.35,
+        "feasibility": 66.67,
+        "fit": 66.67
+      },
+      "quadrant": "Dormant whitespace (ML gap)",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 64.54
+        }
+      ]
+    },
+    {
+      "id": "alzheimers",
+      "label": "Alzheimer disease",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"alzheimer disease\"[MeSH Terms]",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "(dementia OR alzheimer) AND (learning OR neural)"
+      },
+      "priors": {
+        "data_access": 2,
+        "mvp_simplicity": 2,
+        "domain_access": 2
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Progression classifier calibrated against plasma p-tau217 labels",
+      "open_data": "ADNI; NACC; UK Biobank",
+      "metrics": {
+        "momentum": 31.03,
+        "crowding": 84.62,
+        "whitespace": 57.69,
+        "evidence_maturity": 57.69,
+        "growth": 1.21,
+        "ai_growth": 2.83,
+        "arxiv_growth": 1.28,
+        "ai_share_2025": 0.1,
+        "rct_index": 0.1
+      },
+      "scores": {
+        "entry_score": 54.89,
+        "opportunity": 37.23,
+        "feasibility": 66.67,
+        "fit": 66.67
+      },
+      "quadrant": "Crowded, decelerating",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 54.89
+        }
+      ]
+    },
+    {
+      "id": "pkpd",
+      "label": "PK/PD pharmacometrics",
+      "status": "active",
+      "queries": {
+        "pubmed": "pharmacometrics OR \"population pharmacokinetic\" OR \"population pharmacokinetics\" OR \"pharmacokinetic-pharmacodynamic\" OR \"PK/PD\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "pharmacokinetic AND neural"
+      },
+      "priors": {
+        "data_access": 1,
+        "mvp_simplicity": 2,
+        "domain_access": 1
+      },
+      "skill_axis": "ML",
+      "mvp_example": "ML vs population PK for vancomycin trough prediction",
+      "open_data": "MIMIC-IV vancomycin levels; public PK datasets",
+      "metrics": {
+        "momentum": 28.85,
+        "crowding": 38.46,
+        "whitespace": 69.23,
+        "evidence_maturity": 96.15,
+        "growth": 1.02,
+        "ai_growth": 3.15,
+        "arxiv_growth": null,
+        "ai_share_2025": 0.06,
+        "rct_index": 0.55
+      },
+      "scores": {
+        "entry_score": 52.03,
+        "opportunity": 49.52,
+        "feasibility": 44.44,
+        "fit": 66.67
+      },
+      "quadrant": "Dormant whitespace (ML gap)",
+      "signal": "WAIT",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "WAIT",
+          "entry_score": 52.03
+        }
+      ]
+    },
+    {
+      "id": "radiology",
+      "label": "Radiology AI",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"radiology\"[MeSH Terms] OR radiology",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "\"medical image\" OR \"medical images\" OR \"medical imaging\""
+      },
+      "priors": {
+        "data_access": 3,
+        "mvp_simplicity": 2,
+        "domain_access": 2
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Subgroup performance audit of an open chest X-ray model",
+      "open_data": "MIMIC-CXR; CheXpert",
+      "metrics": {
+        "momentum": 20.26,
+        "crowding": 100.0,
+        "whitespace": 50.0,
+        "evidence_maturity": 65.38,
+        "growth": 1.02,
+        "ai_growth": 2.17,
+        "arxiv_growth": 1.45,
+        "ai_share_2025": 0.13,
+        "rct_index": 0.14
+      },
+      "scores": {
+        "entry_score": 54.54,
+        "opportunity": 26.62,
+        "feasibility": 77.78,
+        "fit": 66.67
+      },
+      "quadrant": "Crowded, decelerating",
+      "signal": "SKIP",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "SKIP",
+          "entry_score": 54.54
+        }
+      ]
+    },
+    {
+      "id": "ai_implementation",
+      "label": "AI implementation science",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"artificial intelligence\" AND (implementation OR deployment) AND (hospital OR \"health system\")",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 1,
+        "mvp_simplicity": 1,
+        "domain_access": 1
+      },
+      "skill_axis": "Mixed",
+      "mvp_example": "Post-deployment evaluation of a live model",
+      "open_data": "Requires health-system access",
+      "metrics": {
+        "momentum": 76.92,
+        "crowding": 92.31,
+        "whitespace": 3.85,
+        "evidence_maturity": 26.92,
+        "growth": 6.02,
+        "ai_growth": 6.02,
+        "arxiv_growth": null,
+        "ai_share_2025": 1.0,
+        "rct_index": 0.02
+      },
+      "scores": {
+        "entry_score": 43.33,
+        "opportunity": 37.5,
+        "feasibility": 33.33,
+        "fit": 66.67
+      },
+      "quadrant": "Hot and contested",
+      "signal": "SKIP",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "SKIP",
+          "entry_score": 43.33
+        }
+      ]
+    },
+    {
+      "id": "digital_twin",
+      "label": "Digital twins",
+      "status": "active",
+      "queries": {
+        "pubmed": "\"digital twin\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")",
+        "arxiv_datacite": "\"digital twin\" AND (patient OR patients OR healthcare)"
+      },
+      "priors": {
+        "data_access": 1,
+        "mvp_simplicity": 1,
+        "domain_access": 1
+      },
+      "skill_axis": "ML",
+      "mvp_example": "Patient-state simulator for one ICU condition",
+      "open_data": "MIMIC-IV",
+      "metrics": {
+        "momentum": 85.9,
+        "crowding": 57.69,
+        "whitespace": 26.92,
+        "evidence_maturity": 15.38,
+        "growth": 5.35,
+        "ai_growth": 8.11,
+        "arxiv_growth": 14.68,
+        "ai_share_2025": 0.4,
+        "rct_index": 0.01
+      },
+      "scores": {
+        "entry_score": 50.95,
+        "opportunity": 56.54,
+        "feasibility": 33.33,
+        "fit": 66.67
+      },
+      "quadrant": "Hot and contested",
+      "signal": "SKIP",
+      "quality": {
+        "external_validation_rate": null,
+        "uncertainty_reported_rate": null,
+        "open_data_rate": null,
+        "warrant_gap": null,
+        "concentration_hhi": null
+      },
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded",
+          "signal": "SKIP",
+          "entry_score": 50.95
+        }
+      ]
+    },
+    {
+      "id": "causal_ml_health",
+      "label": "causal ml health",
+      "status": "provisional",
+      "queries": {
+        "arxiv_datacite": "\"causal inference\" AND (clinical OR patients)"
+      },
+      "priors": null,
+      "signal": "WAIT",
+      "note": "Measured on arXiv only; add PubMed query and priors before scoring.",
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded_provisional"
+        }
+      ]
+    },
+    {
+      "id": "health_ai_safety",
+      "label": "health ai safety",
+      "status": "provisional",
+      "queries": {
+        "arxiv_datacite": "medical AND (LLM OR LLMs) AND (jailbreak OR \"red teaming\" OR safety)"
+      },
+      "priors": null,
+      "signal": "WAIT",
+      "note": "Measured on arXiv only; add PubMed query and priors before scoring.",
+      "history": [
+        {
+          "date": "2026-10-09",
+          "event": "seeded_provisional"
+        }
+      ]
+    }
+  ]
+}

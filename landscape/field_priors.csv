@@ -1,0 +1,27 @@
+id,label,data_access,mvp_simplicity,domain_access,skill_axis,mvp_example,open_data
+t2d,Type 2 diabetes,3,3,3,ML,Incident T2D risk classifier with subgroup calibration audit,NHANES; UK Biobank; MIMIC-IV
+metformin,Metformin pharmacology,2,2,2,Causal,Treatment-response heterogeneity model,MIMIC-IV; UK Biobank
+hypertension,Hypertension,3,3,3,ML,Uncontrolled-BP prediction from EHR,NHANES; MIMIC-IV
+sepsis,Sepsis prediction,3,3,2,ML,Leakage-controlled sepsis onset model (exclude post-recognition predictions),MIMIC-IV; eICU; PhysioNet 2019
+readmission,Hospital readmission,3,3,3,ML,30-day readmission model with fairness and transport audit,MIMIC-IV; CMS public files
+alzheimers,Alzheimer disease,2,2,2,ML,Progression classifier calibrated against plasma p-tau217 labels,ADNI; NACC; UK Biobank
+mci,Mild cognitive impairment,2,2,2,ML,MCI screening classifier from speech or tests,ADNI; DementiaBank; NACC
+cgm,Continuous glucose monitoring,2,3,2,ML,Glucose forecasting baseline vs time-series foundation model,OhioT1DM; CGMacros; public CGM cohorts
+wearables,Wearable sensing,3,3,3,ML,Cross-cohort generalization benchmark for a wearable health classifier,All of Us Fitbit; GLOBEM; PMData; UK Biobank accelerometry
+ppg,Photoplethysmography,3,3,2,ML,PPG AF or BP classifier fine-tuned from PaPaGei with subgroup error analysis,MIMIC-IV waveforms; VitalDB; PaPaGei weights
+digital_biomarkers,Digital biomarkers,2,2,2,ML,Validation study of a wearable-derived biomarker against a clinical reference,All of Us; UK Biobank
+digital_phenotyping,Digital phenotyping,2,3,2,ML,Depression detection with leave-one-cohort-out validation,GLOBEM
+radiology,Radiology AI,3,2,2,ML,Subgroup performance audit of an open chest X-ray model,MIMIC-CXR; CheXpert
+ecg,ECG AI,3,3,3,ML,ECG foundation model linear probe vs CNN baseline with calibration,MIMIC-IV-ECG; PTB-XL
+pkpd,PK/PD pharmacometrics,1,2,1,ML,ML vs population PK for vancomycin trough prediction,MIMIC-IV vancomycin levels; public PK datasets
+mipd,Model-informed precision dosing,2,3,1,ML,Hybrid popPK plus ML dose-response model with external validation,MIMIC-IV TDM records
+rwe,Real-world evidence,2,2,2,Causal,Outcome model on EHR cohort with negative controls,MIMIC-IV; Synthea
+tte,Target trial emulation,2,2,2,Causal,Emulated trial replicating a known RCT result,MIMIC-IV; UK Biobank
+value_based,Value-based care,2,2,2,Causal,Risk adjustment model fairness audit under HCC v28,CMS public use files
+llm_med,LLMs in medicine,3,3,3,ML,Calibration and abstention study of open medical LLMs on a held-out benchmark,MedQA; HealthBench; MedGemma
+foundation_models,Health foundation models,1,1,2,ML,Few-shot adaptation of an open EHR FM (MOTOR or CLMBR) on a new task,EHRSHOT (gated); MOTOR weights
+ambient_scribe,Ambient scribes,1,2,2,ML,Hallucination and omission evaluation of note generation,ACI-Bench; MTS-Dialog
+algo_fairness,Algorithmic fairness,3,3,3,ML,Subgroup calibration audit plus mitigation for a deployed-style clinical model,MIMIC-IV; eICU
+dataset_shift,Dataset shift and monitoring,3,3,3,ML,Temporal and cross-site drift detection with performance-decay forecasting,MIMIC-III vs MIMIC-IV; eICU multi-site
+ai_implementation,AI implementation science,1,1,1,Mixed,Post-deployment evaluation of a live model,Requires health-system access
+digital_twin,Digital twins,1,1,1,ML,Patient-state simulator for one ICU condition,MIMIC-IV
