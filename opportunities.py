@@ -98,6 +98,9 @@ def field_block(field):
                      f"{q.get('external_validation_rate')}, warrant gap {q.get('warrant_gap')}, "
                      f"open data rate {q.get('open_data_rate')}, transport limitation rate "
                      f"{q.get('transport_limitation_rate')}.")
+    also = [f"{a['label']} ({a.get('quadrant') or 'provisional'})" for a in field.get("also") or []]
+    if also:
+        lines.append("This search also belongs to: " + "; ".join(also) + ".")
     if field.get("mvp_example"):
         lines.append(f"Seed MVP idea: {field['mvp_example']} (open data: {field.get('open_data')}).")
     return "\n".join(lines)

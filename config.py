@@ -143,6 +143,28 @@ LANDSCAPE_ALPHA = 0.3          # weight of a new observation in the running qual
 LANDSCAPE_MATCH_THRESHOLD = 0.5  # share of the topic's words a field's query must cover
 LANDSCAPE_DEFAULT_FIT = 2      # fit (0-3) used when landscape/private/fit.csv is absent
 LANDSCAPE_DEFAULT_PRIORS = {"data_access": 2, "mvp_simplicity": 2, "domain_access": 2}
+LANDSCAPE_MAX_FIELDS = 3      # a search can belong to several fields (wearables x hypertension x equity)
+# Other names for each field, used only to match a search to its fields (never in counts).
+# Each entry matches when all its words appear in the search, in any order.
+LANDSCAPE_ALIASES = {
+    "wearables": ["actigraphy", "accelerometer", "accelerometry", "smartwatch", "fitbit",
+                  "activity tracker", "wearable device", "remote monitoring",
+                  "continuous monitoring", "jupyterhealth", "mhealth", "oura", "apple watch"],
+    "hypertension": ["blood pressure", "hypertensive"],
+    "algo_fairness": ["fairness", "health equity", "equity", "disparities", "disparity",
+                      "access to care", "underserved", "subgroup performance", "speaker group"],
+    "ambient_scribe": ["speech recognition", "asr", "transcript", "transcription",
+                       "clinical documentation", "note generation", "medical scribe"],
+    "llm_med": ["llm", "llm judge", "language model", "chatbot"],
+    "foundation_models": ["pretrained", "pre trained", "self supervised", "foundation"],
+    "digital_phenotyping": ["passive sensing", "mobile sensing", "smartphone sensing",
+                            "depression tracking", "depression monitoring", "mood tracking",
+                            "mental health monitoring"],
+    "maternal_health": ["postpartum", "post partum", "perinatal", "pregnancy", "pregnant",
+                        "maternal", "preeclampsia", "gestational", "prenatal", "antenatal",
+                        "obstetric"],
+    "dataset_shift": ["distribution shift", "label shift", "covariate shift", "drift"],
+}
 LANDSCAPE_MAX_OPPORTUNITIES = 12  # past gaps remembered per field and shown to the next search
 LANDSCAPE_MIN_EXTRACTED = 3   # fewer extracted papers than this say nothing about quality
 LANDSCAPE_OPEN_DATA_MIN = 0.2  # below this open-data rate, suggest a lower data_access prior

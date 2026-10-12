@@ -1448,6 +1448,28 @@
           "event": "seeded_provisional"
         }
       ]
+    },
+    {
+      "id": "maternal_health",
+      "label": "Maternal and perinatal health",
+      "status": "provisional",
+      "queries": {
+        "pubmed": "\"postpartum depression\" OR \"perinatal depression\" OR \"pregnancy complications\"[MeSH Terms] OR \"maternal health\"",
+        "pubmed_ai_suffix": "(\"machine learning\" OR \"deep learning\" OR \"artificial intelligence\" OR \"large language model\" OR \"neural network\")"
+      },
+      "priors": {
+        "data_access": 2,
+        "mvp_simplicity": 2,
+        "domain_access": 2
+      },
+      "signal": "WAIT",
+      "note": "Added 2026-10-12 for searches on pregnancy, postpartum and perinatal mental health. Add PubMed counts and the owner's priors, then set status to active, to rank it.",
+      "history": [
+        {
+          "date": "2026-10-12",
+          "event": "seeded_provisional"
+        }
+      ]
     }
   ]
 }

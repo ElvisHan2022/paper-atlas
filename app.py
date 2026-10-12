@@ -96,6 +96,7 @@ def method_facts():
         "n_opportunities": config.N_OPPORTUNITIES,
         "landscape_knobs": {
             "alpha": config.LANDSCAPE_ALPHA, "match_threshold": config.LANDSCAPE_MATCH_THRESHOLD,
+            "max_fields": config.LANDSCAPE_MAX_FIELDS,
             "default_fit": config.LANDSCAPE_DEFAULT_FIT, "min_extracted": config.LANDSCAPE_MIN_EXTRACTED,
             "open_data_min": config.LANDSCAPE_OPEN_DATA_MIN, "ai_terms": config.LANDSCAPE_AI_TERMS,
             "top_journals": list(config.TOP_JOURNALS)},

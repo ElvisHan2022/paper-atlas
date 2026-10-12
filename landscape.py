@@ -39,8 +39,16 @@ def live_path(name):
 
 
 def ensure_live():
-    """Copy the tracked seed to data/landscape/ on first use, scored with the private fit."""
+    """Copy the tracked seed to data/landscape/ on first use, scored with the private fit.
+    Later, fields added to the seed are copied into the live map too."""
     if live_path("fields.json").exists():
+        doc = load_fields()
+        have = {f["id"] for f in doc["fields"]}
+        seed = load_fields(config.LANDSCAPE_SEED_DIR / "fields.json")
+        added = [f for f in seed["fields"] if f["id"] not in have]
+        if added:
+            doc["fields"] += added
+            save_fields(doc)
         return
     config.LANDSCAPE_DIR.mkdir(parents=True, exist_ok=True)
     for name in ("fields.json", "observations.jsonl"):
@@ -131,37 +139,48 @@ def key_phrases(query):
     return phrases
 
 
+def phrases_for(field):
+    """Every term that, found whole in a search, places it in this field: the PubMed
+    query's terms and acronyms, the aliases in config, and a provisional field's label."""
+    phrases = key_phrases((field.get("queries") or {}).get("pubmed"))
+    for alias in config.LANDSCAPE_ALIASES.get(field["id"], []):
+        ws = set(words(alias)) - config.LANDSCAPE_GENERIC_WORDS
+        if ws:
+            phrases.append(ws)
+    if field.get("status") == "provisional":
+        phrases.append(set(words(field.get("label"))) - config.LANDSCAPE_GENERIC_WORDS)
+    return [p for p in phrases if p]
+
+
 def vocabulary(field):
     queries = field.get("queries") or {}
     vocab = set(words(queries.get("pubmed"))) | set(words(field.get("label")))
     vocab |= set(words(queries.get("topic")))
-    for phrase in key_phrases(queries.get("pubmed")):
+    for phrase in phrases_for(field):
         vocab |= phrase
     return vocab - config.LANDSCAPE_GENERIC_WORDS
 
 
 def match_score(topic_words, field):
-    """1.0 when the topic contains one of the field's search terms whole; otherwise the
-    share of the topic's words that the field's query or label uses."""
+    """1.0 when the topic contains one of the field's terms whole; otherwise the share of
+    the topic's words that the field's query, aliases or label use."""
     if not topic_words:
         return 0.0
-    queries = field.get("queries") or {}
-    phrases = key_phrases(queries.get("pubmed"))
-    if field.get("status") == "provisional":
-        phrases.append(set(words(field.get("label"))) - config.LANDSCAPE_GENERIC_WORDS)
-    if any(p and p <= topic_words for p in phrases):
+    if any(p <= topic_words for p in phrases_for(field)):
         return 1.0
     return len(topic_words & vocabulary(field)) / len(topic_words)
 
 
 def match_topic(topic, fields):
-    """Field ids that cover the topic, best first. If none do, a new provisional id."""
+    """Up to LANDSCAPE_MAX_FIELDS field ids that cover the topic, best first (ties go to the
+    field sharing more of the topic's words). If none do, a new provisional id."""
     topic_words = set(words(topic)) - config.LANDSCAPE_GENERIC_WORDS
-    scored = [(match_score(topic_words, f), f["id"]) for f in fields]
-    hits = [fid for s, fid in sorted(scored, key=lambda x: -x[0])
+    scored = [(match_score(topic_words, f), len(topic_words & vocabulary(f)), f["id"])
+              for f in fields]
+    hits = [fid for s, overlap, fid in sorted(scored, key=lambda x: (-x[0], -x[1]))
             if s >= config.LANDSCAPE_MATCH_THRESHOLD]
     if hits:
-        return hits
+        return hits[:config.LANDSCAPE_MAX_FIELDS]
     base = "_".join([w for w in words(topic) if w not in config.LANDSCAPE_GENERIC_WORDS][:4]) or "topic"
     taken = {f["id"] for f in fields}
     new_id, i = base, 2
@@ -444,17 +463,20 @@ def update_from_run(topic, db_path=None):
     ensure_live()
     doc = load_fields()
     old = copy.deepcopy(doc)
-    field_id = match_topic(topic, doc["fields"])[0]
-    field = next((f for f in doc["fields"] if f["id"] == field_id), None)
-    if field is None:
-        field = new_provisional(field_id, topic)
-        doc["fields"].append(field)
+    ids = match_topic(topic, doc["fields"])
+    by_id = {f["id"]: f for f in doc["fields"]}
+    if ids[0] not in by_id:
+        by_id[ids[0]] = new_provisional(ids[0], topic)
+        doc["fields"].append(by_id[ids[0]])
+    field_id, field = ids[0], by_id[ids[0]]
     obs = observe_run(topic, db_path)
-    append_observation(field_id, obs, topic)
-    update_metrics(field, obs)
+    # One line in the evidence log; the other matched fields are named on it.
+    append_observation(field_id, obs, topic, also=ids[1:])
+    for fid in ids:
+        update_metrics(by_id[fid], obs)
     rescore(doc)
     changes = log_changes(old, doc, cause=f"atlas run: {topic}")
-    suggestions = propose_priors(field, obs)
+    suggestions = [s for fid in ids for s in propose_priors(by_id[fid], obs)]
     save_fields(doc)
     import landscape_report
     landscape_report.write_reports(doc)
@@ -466,6 +488,10 @@ def update_from_run(topic, db_path=None):
             "quality": field.get("quality"), "priors": field.get("priors"),
             "mvp_example": field.get("mvp_example"), "open_data": field.get("open_data"),
             "previous_opportunities": (field.get("opportunities") or [])[-config.LANDSCAPE_MAX_OPPORTUNITIES:],
+            "also": [{"field": fid, "label": by_id[fid].get("label"), "status": by_id[fid].get("status"),
+                      "quadrant": by_id[fid].get("quadrant"), "signal": by_id[fid].get("signal"),
+                      "entry_score": (by_id[fid].get("scores") or {}).get("entry_score")}
+                     for fid in ids[1:]],
             "changes": changes, "suggestions": suggestions}
 
 

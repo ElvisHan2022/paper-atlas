@@ -1215,6 +1215,7 @@ function fieldRead(r, o) {
   return `<div class="field-read">
     <h3>Field: ${esc(f.label)} ${f.signal ? `<span class="sig ${esc(f.signal)}">${esc(f.signal)}</span>` : ""}
       ${ranked ? `<span class="tag level">${esc(f.quadrant)}</span>` : `<span class="tag">Provisional, not ranked yet</span>`}</h3>
+    ${(f.also || []).length ? `<p style="margin:0 0 6px">Also in: ${f.also.map(a => `<b>${esc(a.label)}</b>${a.quadrant ? ` (${esc(a.quadrant)})` : " (provisional)"}`).join(" · ")}</p>` : ""}
     ${o && o.field_read ? `<p style="margin:0">${esc(o.field_read)}</p>` : ""}
     ${ranked ? `<div class="kv">
       <span>Momentum <b>${fmt(m.momentum, 0)}</b></span><span>Crowding <b>${fmt(m.crowding, 0)}</b></span>
@@ -1438,10 +1439,11 @@ ties broken by the local score; the top ${f.top_n} are kept</div>`)}
     <p class="how-intro">The landscape scores ${L.fields.length} healthcare AI fields for how crowded they are, how fast they
       grow and how feasible they are to enter. It started from a hand-built seed, and every search adds evidence.</p>
     <ol class="steps">
-      ${step("Match your keywords to a field", "", `<p>Your keywords are compared with each field's PubMed search terms
-        and its name, ignoring common words like “clinical” and “model”. A field matches if your keywords contain
-        one of its search terms <b>whole</b> (including acronyms, so “LLM” matches “large language model”), or share at
-        least <b>${pct(K.match_threshold)}</b> of their words with it. If none match, a new <b>provisional field</b> is
+      ${step("Match your keywords to its fields", "", `<p>Your keywords are compared with each field's PubMed search terms,
+        its other names (for example “actigraphy” for wearables, “access to care” for fairness) and its name, ignoring
+        common words like “clinical” and “model”. A field matches if your keywords contain one of its terms <b>whole</b>
+        (including acronyms, so “LLM” matches “large language model”), or share at least <b>${pct(K.match_threshold)}</b>
+        of their words with it. A search can belong to up to <b>${K.max_fields}</b> fields; the best match is its main field. If none match, a new <b>provisional field</b> is
         created. It is listed but not ranked until you give it a search query and priors.</p>`)}
       ${step("Measure what this search found", "", `<p>From this search's papers: the number of papers per year,
         the <b>AI share</b> (title or abstract mentions ${terms}), the <b>review share</b>, the share in the
@@ -1454,9 +1456,9 @@ ties broken by the local score; the top ${f.top_n} are kept</div>`)}
           <li><b>transport limitation rate</b> (stated limitations mention generalization, single sites or subgroups)</li>
         </ul>`)}
       ${step("Write it to the evidence log", "", `<p>One line is appended to <code>data/landscape/observations.jsonl</code>
-        with the date, the field and your keywords. Past lines are <b>never edited or deleted</b>, so every score can be
+        with the date, the main field, the other matched fields and your keywords. Past lines are <b>never edited or deleted</b>, so every score can be
         traced back to its evidence.</p>`)}
-      ${step("Nudge the field's quality metrics", "", `<p>Each metric moves <b>${pct(K.alpha)}</b> of the way toward what
+      ${step("Nudge each matched field's quality metrics", "", `<p>Each metric moves <b>${pct(K.alpha)}</b> of the way toward what
         this search saw, so one narrow search can't swing the map, and evidence builds up over many searches.</p>
         <div class="formula">new value = ${K.alpha} × this search + ${(1 - K.alpha).toFixed(1)} × previous value
 warrant gap = 1 − external validation rate</div>`)}

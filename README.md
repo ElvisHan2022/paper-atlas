@@ -93,9 +93,9 @@ paper-atlas keeps a running map of 26 healthcare AI fields: how crowded each is,
 grows, and how feasible it is to enter. The seed scores are in `landscape/`, and the method
 is in `landscape/CONTEXT.md` and `docs/LANDSCAPE_SPEC.md`.
 
-- **Every search updates it.** The topic is matched to a field. The run's papers and
+- **Every search updates it.** The topic is matched to up to three fields, using each field's search terms and its other names in `config.LANDSCAPE_ALIASES` (for example "actigraphy" counts as wearables). The run's papers and
   extractions are added as one observation: AI share, review share, top-journal share, and
-  how often papers report external validation (the *warrant gap* is the rest). The field's
+  how often papers report external validation (the *warrant gap* is the rest). Each matched field's
   quality metrics move 30% toward what the run saw. Then every field is rescored.
 - **New topics** become *provisional* fields: listed, but not ranked until you add a PubMed
   query and priors.

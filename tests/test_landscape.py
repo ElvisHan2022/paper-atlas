@@ -64,6 +64,23 @@ def test_match_topic_finds_the_field(topic, field_id):
     assert landscape.match_topic(topic, seed_doc()["fields"])[0] == field_id
 
 
+@pytest.mark.parametrize("topic, expected", [
+    # Projects that span fields must land in every field they belong to.
+    ("smartwatch blood pressure models and access to care", {"wearables", "hypertension", "algo_fairness"}),
+    ("speech recognition, LLM judges and fairness", {"ambient_scribe", "llm_med", "algo_fairness"}),
+    ("pretrained transformer on actigraphy", {"wearables", "foundation_models"}),
+    ("post partum depression tracking with wearables after pregnancy complications",
+     {"maternal_health", "wearables", "digital_phenotyping"}),
+])
+def test_match_topic_finds_every_field_a_project_spans(topic, expected):
+    assert set(landscape.match_topic(topic, seed_doc()["fields"])) == expected
+
+
+def test_match_topic_caps_the_number_of_fields():
+    topic = "LLM judge speech recognition fairness actigraphy blood pressure postpartum"
+    assert len(landscape.match_topic(topic, seed_doc()["fields"])) == config.LANDSCAPE_MAX_FIELDS
+
+
 def test_match_topic_unmatched_gives_a_new_provisional_id():
     fields = seed_doc()["fields"]
     ids = landscape.match_topic("retinal photography for kidney disease screening", fields)
@@ -249,4 +266,29 @@ def test_summary_reports_runs_queue_and_ranking(sandbox):
     assert len(s["review_queue"]) == 1 and "<!--" not in s["review_queue"][0]
     assert [f["entry"] for f in s["fields"]] == sorted((f["entry"] for f in s["fields"]), reverse=True)
     assert any(f["id"] == s["recent_runs"][0]["field"] for f in s["provisional"])
+
+
+def test_a_search_updates_every_field_it_matches_with_one_log_line(sandbox):
+    topic = "smartwatch blood pressure models and access to care"
+    path = sandbox / "atlas.db"
+    toy_db(path, topic)
+    landscape.ensure_live()
+    n_obs = len(landscape.load_observations())
+    summary = landscape.update_from_run(topic, path)
+    log = landscape.load_observations()
+    assert len(log) == n_obs + 1
+    assert {log[-1]["field"], *log[-1]["also"]} == {"wearables", "hypertension", "algo_fairness"}
+    assert {a["field"] for a in summary["also"]} | {summary["field"]} == {"wearables", "hypertension", "algo_fairness"}
+    fields = {f["id"]: f for f in landscape.load_fields()["fields"]}
+    for fid in ("wearables", "hypertension", "algo_fairness"):
+        assert fields[fid]["quality"]["external_validation_rate"] == 0.25
+
+
+def test_fields_added_to_the_seed_reach_an_existing_live_map(sandbox):
+    landscape.ensure_live()
+    doc = landscape.load_fields()
+    doc["fields"] = [f for f in doc["fields"] if f["id"] != "maternal_health"]
+    landscape.save_fields(doc)
+    landscape.ensure_live()
+    assert any(f["id"] == "maternal_health" for f in landscape.load_fields()["fields"])
 
