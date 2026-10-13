@@ -482,6 +482,12 @@ def _run(query, report, source_names, lens_key):
     source_names = [s for s in (source_names or list(config.SOURCES)) if s in config.SOURCES]
     want_trials = config.TRIAL_SOURCE in source_names
     paper_sources = [s for s in source_names if s != config.TRIAL_SOURCE]
+    # Sources this machine can't use (Google Scholar without a SerpAPI key) are left out.
+    skipped = {s: why for s in paper_sources if (why := sources.unavailable(s))}
+    paper_sources = [s for s in paper_sources if s not in skipped]
+    if skipped and not paper_sources:
+        raise PipelineError("; ".join(f"{config.SOURCES[s]}: {why}" for s, why in skipped.items())
+                            + ". Pick another source too.")
     if not paper_sources:
         raise PipelineError("Pick at least one paper source (ClinicalTrials.gov alone only finds trials).")
     lens = config.LENSES.get(lens_key) or config.LENSES["balanced"]
@@ -490,7 +496,8 @@ def _run(query, report, source_names, lens_key):
     run_id = run_id_for(query)
     log, events = make_run_log(run_id)
     _current.log = log
-    log("start", query=query, lens=lens["label"], sources=source_names, llm=has_llm)
+    log("start", query=query, lens=lens["label"], sources=source_names, llm=has_llm,
+        **({"skipped": skipped} if skipped else {}))
 
     # 1) Processing your query
     report(0, 0.1, "Reading your query")

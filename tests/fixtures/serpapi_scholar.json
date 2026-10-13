@@ -1,0 +1,35 @@
+{
+  "search_metadata": {"id": "fixture", "status": "Success"},
+  "search_parameters": {"engine": "google_scholar", "q": "wearable hypertension", "num": "20"},
+  "search_information": {"total_results": 18400, "query_displayed": "wearable hypertension"},
+  "organic_results": [
+    {
+      "position": 0,
+      "title": "Cuffless blood pressure monitoring with wearable devices: a review",
+      "result_id": "AbC123xyz",
+      "link": "https://www.nature.com/articles/s41746-021-00000-0",
+      "snippet": "Wearable cuffless devices promise continuous blood pressure monitoring, but validation against measured reference standards remains limited …",
+      "publication_info": {
+        "summary": "A Lee, B Kim, C Park - npj Digital Medicine, 2021 - nature.com",
+        "authors": [{"name": "A Lee", "author_id": "x1"}, {"name": "B Kim", "author_id": "x2"}]
+      },
+      "resources": [{"title": "nature.com", "file_format": "PDF", "link": "https://www.nature.com/articles/s41746-021-00000-0.pdf"}],
+      "inline_links": {"cited_by": {"total": 412, "cites_id": "111"}, "versions": {"total": 6}}
+    },
+    {
+      "position": 1,
+      "title": "[BOOK][B] Hypertension in the digital age",
+      "result_id": "DeF456",
+      "link": "https://books.example.org/hypertension",
+      "snippet": "This book reviews remote monitoring of hypertension in primary care …",
+      "publication_info": {"summary": "D Patel - 2019 - books.example.org"},
+      "inline_links": {"cited_by": {"total": 37}}
+    },
+    {
+      "position": 2,
+      "title": "[CITATION][C] Smartwatch blood pressure",
+      "result_id": "GhI789",
+      "publication_info": {"summary": "E Ng - 2020"}
+    }
+  ]
+}

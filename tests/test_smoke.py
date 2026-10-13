@@ -426,3 +426,30 @@ def test_how_it_works_facts_come_from_config():
     assert [r["level"] for r in facts["rubric"]] == [5, 4, 3, 2, 1]
     assert facts["landscape"]["fields"]
 
+
+def test_scholar_results_parse_and_never_leak_the_key():
+    import json
+    from pathlib import Path
+
+    import sources
+    data = json.loads((Path(__file__).parent / "fixtures" / "serpapi_scholar.json").read_text())
+    papers = sources.parse_scholar(data)
+    assert [p["title"] for p in papers] == ["Cuffless blood pressure monitoring with wearable devices: a review",
+                                            "Hypertension in the digital age"]   # [BOOK] tag gone, bare citation dropped
+    first = papers[0]
+    assert (first["year"], first["venue"], first["citationCount"]) == (2021, "npj Digital Medicine", 412)
+    assert first["openAccessPdf"]["url"].endswith(".pdf") and first["source"] == "scholar"
+    reason = sources.explain_source_error("scholar", Exception("400 for url: https://serpapi.com/x?q=a&api_key=SECRET&num=20"))
+    assert "SECRET" not in reason
+
+
+def test_scholar_merges_last_so_real_abstracts_win():
+    import sources
+    s2 = {"paperId": "a", "title": "Cuffless blood pressure monitoring with wearables", "abstract": "Full abstract.",
+          "externalIds": {}, "source": "semantic_scholar"}
+    gs = {"paperId": "scholar:x", "title": "Cuffless blood pressure monitoring with wearables", "abstract": "Snippet …",
+          "citationCount": 412, "externalIds": {}, "source": "scholar"}
+    merged = sources.merge({"scholar": [gs], "semantic_scholar": [s2]})
+    assert len(merged) == 1 and merged[0]["abstract"] == "Full abstract."
+    assert merged[0]["citationCount"] == 412 and merged[0]["sources"] == ["semantic_scholar", "scholar"]
+

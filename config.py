@@ -76,9 +76,11 @@ RUNS_DIR = OUTPUT_DIR / "runs"
 # Where to search, and how many hits to take from each before merging duplicates.
 SOURCES = {"pubmed": "PubMed", "openalex": "OpenAlex (all journals)",
            "preprints": "medRxiv / bioRxiv", "semantic_scholar": "Semantic Scholar",
-           "arxiv": "arXiv", "clinicaltrials": "ClinicalTrials.gov"}
+           "arxiv": "arXiv", "clinicaltrials": "ClinicalTrials.gov",
+           "scholar": "Google Scholar (via SerpAPI)"}
 TRIAL_SOURCE = "clinicaltrials"   # not ranked as papers; feeds the Clinical trials tab
-SOURCE_LIMITS = {"semantic_scholar": 80, "openalex": 80, "pubmed": 60, "preprints": 40, "arxiv": 25}
+SOURCE_LIMITS = {"semantic_scholar": 80, "openalex": 80, "pubmed": 60, "preprints": 40, "arxiv": 25,
+                 "scholar": 20}   # Scholar: one paid SerpAPI request, 20 results at most
 TRIALS_LIMIT = 10           # ClinicalTrials.gov studies shown in the Clinical trials tab
 
 # Venue families, matched as whole words against the lowercase venue name (first match wins).

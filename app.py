@@ -21,6 +21,7 @@ import landscape
 import landscape_report
 import llm
 import pipeline
+import sources
 
 PAGE = config.ROOT / "templates" / "app.html"
 jobs = {}                 # job id -> dict the browser polls
@@ -148,6 +149,7 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/options":
             self.send_json({
                 "sources": config.SOURCES,
+                "unavailable": {s: why for s in config.SOURCES if (why := sources.unavailable(s))},
                 "lenses": {k: {"label": v["label"], "summary": v["summary"]}
                            for k, v in config.LENSES.items()},
                 "has_llm": llm.has_key(),

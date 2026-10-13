@@ -8,6 +8,8 @@ where a paper came from.
 PubMed:  https://www.ncbi.nlm.nih.gov/books/NBK25501/  (E-utilities, free, ~3 requests/s)
 arXiv:   https://info.arxiv.org/help/api/user-manual.html  (Atom XML, 1 request per 3 s)
 OpenAlex: https://docs.openalex.org  (free, open index of ~250M works across all journals)
+Google Scholar: https://serpapi.com/google-scholar-api  (Scholar has no API and blocks
+          scraping, so this goes through SerpAPI, a paid service; needs SERPAPI_KEY in .env)
 """
 import os
 import re
@@ -286,6 +288,53 @@ def parse_trials(data):
 
 # ---------------- Semantic Scholar + merging ----------------
 
+SERPAPI = "https://serpapi.com/search.json"
+
+
+def scholar_search(query, n):
+    """Google Scholar through SerpAPI: one request, up to 20 results."""
+    key = os.getenv("SERPAPI_KEY")
+    if not key:
+        raise RuntimeError("Google Scholar needs a SERPAPI_KEY in .env")
+    data = fetch.cached_get(SERPAPI, {"engine": "google_scholar", "q": query,
+                                      "num": min(n, 20), "api_key": key}, "json", 1.0)
+    return parse_scholar(data or {})
+
+
+def parse_scholar(data):
+    """Scholar shows a snippet, not the abstract; it stands in for one until another source
+    supplies the real abstract when the papers are merged."""
+    out = []
+    for r in data.get("organic_results") or []:
+        title = re.sub(r"^(\[[A-Z]+\]\s*)+", "", r.get("title") or "").strip()
+        if not title or not r.get("snippet"):
+            continue   # bare [CITATION] entries have nothing to rank
+        info = r.get("publication_info") or {}
+        parts = [s.strip() for s in (info.get("summary") or "").split(" - ")]
+        year = re.search(r"\b(19|20)\d{2}\b", info.get("summary") or "")
+        venue = re.sub(r",?\s*\b(19|20)\d{2}\b", "", parts[1]).strip(" ,") if len(parts) > 2 else ""
+        authors = [a.get("name") for a in info.get("authors") or []] or \
+            [s.strip() for s in parts[0].split(",") if s.strip()] if parts else []
+        pdf = next((x.get("link") for x in r.get("resources") or [] if x.get("file_format") == "PDF"), None)
+        out.append({
+            "paperId": f"scholar:{r.get('result_id')}", "title": title,
+            "abstract": r["snippet"].replace("\u2026", "").strip(),
+            "year": int(year.group(0)) if year else None, "venue": venue or None,
+            "citationCount": ((r.get("inline_links") or {}).get("cited_by") or {}).get("total"),
+            "externalIds": {}, "openAccessPdf": {"url": pdf} if pdf else None,
+            "authors": [{"name": a} for a in authors if a],
+            "url": r.get("link"), "publicationTypes": [], "source": "scholar",
+        })
+    return out
+
+
+def unavailable(source):
+    """Why a source can't be searched on this machine, or None."""
+    if source == "scholar" and not os.getenv("SERPAPI_KEY"):
+        return "add SERPAPI_KEY to .env to search Google Scholar"
+    return None
+
+
 def s2_search(query, n):
     papers = fetch.search_papers(query, n)
     for p in papers:
@@ -295,7 +344,7 @@ def s2_search(query, n):
     return papers
 
 
-SEARCHERS = {"semantic_scholar": s2_search, "openalex": openalex_search,
+SEARCHERS = {"semantic_scholar": s2_search, "openalex": openalex_search, "scholar": scholar_search,
              "pubmed": pubmed_search, "preprints": preprint_search, "arxiv": arxiv_search}
 
 
@@ -330,7 +379,7 @@ def merge(results_by_source):
     journal venue replaces a preprint one. `sources` lists everywhere the paper was found.
     """
     records, index = [], {}          # index: any dedupe key -> position in records
-    preferred = ["semantic_scholar", "openalex", "pubmed", "preprints", "arxiv"]
+    preferred = ["semantic_scholar", "openalex", "pubmed", "preprints", "arxiv", "scholar"]
     for source in preferred + [s for s in results_by_source if s not in preferred]:
         for p in results_by_source.get(source, []):
             if not p.get("title") or not p.get("abstract"):
@@ -385,7 +434,7 @@ def search_all(query, sources, limits=None):
 
 def explain_source_error(source, e):
     """Turn a failed request into a short reason a person can act on."""
-    text = str(e)
+    text = re.sub(r"(api_key|apikey|key)=[^&\s]+", r"\1=***", str(e))   # never show a key
     if "429" in text or "Gave up" in text:
         reason = "it is rate-limiting requests right now (its free tier is busy)"
         if source == "semantic_scholar":
