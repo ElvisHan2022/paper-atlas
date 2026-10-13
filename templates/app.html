@@ -236,31 +236,61 @@
   .tab-sep { align-self: center; color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
              padding: 0 4px 0 10px; white-space: nowrap; }
   .evidence-note { color: var(--muted); font-size: 14px; margin: 0 0 16px; padding-left: 12px; border-left: 3px solid var(--accent-soft); }
-  .field-read { border: 1px solid var(--border); background: var(--surface-2); border-radius: var(--radius); padding: 14px 16px;
-                margin: 0 0 22px; font-size: 14.5px; color: var(--muted); }
-  .field-read h3 { margin: 0 0 8px; font-size: 15px; color: var(--text); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .field-read .kv { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 0; }
-  .field-read .kv b { color: var(--text); font-variant-numeric: tabular-nums; }
-  .opp-card { border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius);
-              padding: 20px 22px; margin: 0 0 16px; box-shadow: var(--shadow); }
-  .opp-card > h2 { margin: 0 0 6px; font-size: 18px; display: flex; align-items: flex-start; gap: 10px; }
-  .opp-card > h2 .num { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--accent);
-                        color: var(--on-accent); display: grid; place-items: center; font-size: 14px; margin-top: 1px; }
-  .opp-meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px 36px; }
-  .opp-card h4 { margin: 14px 0 4px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); }
-  .opp-card p { margin: 0; }
-  .opp-card .angles { margin: 4px 0 0; padding-left: 20px; color: var(--muted); }
-  .opp-card .angles b { color: var(--text); }
-  .mvp { margin-top: 14px; border-radius: 12px; background: var(--accent-soft); padding: 14px 16px; }
-  .mvp h3 { margin: 0 0 8px; font-size: 15.5px; color: var(--accent-strong); }
-  .mvp dl { display: grid; grid-template-columns: 110px 1fr; gap: 6px 12px; margin: 0; font-size: 14px; }
-  .mvp dt { color: var(--muted); font-weight: 600; }
-  .mvp dd { margin: 0; }
-  .chip-btn { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; font-size: 12.5px;
-              padding: 3px 10px; cursor: pointer; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
-  .chip-btn:hover { border-color: var(--accent); color: var(--text); }
+  /* Opportunities: headline first, big numbers, details on demand */
+  .hero { padding: 8px 0 30px; border-bottom: 1px solid var(--border); margin-bottom: 30px; }
+  .kicker { margin: 0 0 14px; color: var(--accent-strong); font-size: 13px; font-weight: 600;
+            letter-spacing: .08em; text-transform: uppercase; }
+  .hero-h { margin: 0 0 16px; font-size: clamp(30px, 5vw, 46px); line-height: 1.1; font-weight: 600;
+            letter-spacing: -.03em; max-width: 22ch; }
+  .hero-sub { margin: 0; font-size: clamp(17px, 2vw, 19px); line-height: 1.55; color: var(--muted); max-width: 60ch; }
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 10px; }
+  .kpi { border-top: 3px solid var(--accent); padding: 12px 0 0; }
+  .kpi b { display: block; font-size: clamp(24px, 3.4vw, 34px); line-height: 1.1; font-weight: 600;
+           letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .kpi b.word { font-size: clamp(18px, 2.2vw, 22px); padding-top: 6px; }
+  .kpi span { display: block; margin-top: 6px; color: var(--muted); font-size: 13px; }
+  .kpi-note { margin: 4px 0 44px; color: var(--faint); font-size: 13.5px; }
+  .opps { list-style: none; margin: 0; padding: 0; }
+  .opp { display: grid; grid-template-columns: 76px 1fr; gap: 0 18px; padding: 34px 0;
+         border-top: 1px solid var(--border); }
+  .opp-num { font-size: 44px; line-height: 1; font-weight: 600; color: var(--accent); letter-spacing: -.04em;
+             font-variant-numeric: tabular-nums; }
+  .opp-h { margin: 2px 0 10px; font-size: clamp(22px, 3vw, 30px); line-height: 1.2; font-weight: 600; letter-spacing: -.02em; }
+  .opp-pitch { margin: 0 0 18px; font-size: 18px; line-height: 1.5; color: var(--muted); max-width: 58ch; }
+  .opp-facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0 0 20px; font-size: 14px; color: var(--muted); }
+  .opp-facts b { color: var(--text); font-weight: 600; }
+  .starter { background: var(--accent-soft); border-radius: 14px; padding: 18px 20px; }
+  .starter .label { display: block; color: var(--accent-strong); font-size: 12px; font-weight: 600;
+                    letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+  .starter-h { margin: 0 0 4px; font-size: 19px; font-weight: 600; line-height: 1.35; }
+  .starter p { margin: 0; color: var(--muted); font-size: 15px; }
+  .case { margin-top: 16px; }
+  .case > summary { cursor: pointer; color: var(--accent); font-weight: 500; font-size: 15px; list-style: none;
+                    display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+  .case > summary::-webkit-details-marker { display: none; }
+  .case > summary::before { content: "+"; font-size: 18px; width: 14px; }
+  .case[open] > summary::before { content: "–"; }
+  .case h4 { margin: 18px 0 4px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); }
+  .case p { margin: 0; line-height: 1.6; }
+  .case .angles { margin: 4px 0 0; padding-left: 20px; color: var(--muted); }
+  .case .angles b { color: var(--text); }
+  .case dl { display: grid; grid-template-columns: 120px 1fr; gap: 6px 14px; margin: 4px 0 0; font-size: 14.5px; }
+  .case dt { color: var(--muted); font-weight: 600; }
+  .case dd { margin: 0; }
+  .more { margin-top: 26px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .more > summary { cursor: pointer; color: var(--muted); font-size: 15px; min-height: 44px; display: flex; align-items: center; }
+  .chip-btn { border: 0; background: none; padding: 0; cursor: pointer; color: var(--accent); font: inherit;
+              display: inline-flex; align-items: center; gap: 6px; }
   .chip-btn .dot { width: 8px; height: 8px; }
-  @media (max-width: 640px) { .mvp dl { grid-template-columns: 1fr; } .opp-meta { margin-left: 0; } .opp-card { padding: 16px; } }
+  details.search-details { margin-top: 10px; color: var(--muted); font-size: 14px; }
+  details.search-details > summary { cursor: pointer; color: var(--faint); }
+  details.search-details p { margin: 8px 0 0; }
+  .ctl:disabled { opacity: .45; cursor: not-allowed; }
+  @media (max-width: 640px) {
+    .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+    .opp { grid-template-columns: 1fr; } .opp-num { font-size: 34px; margin-bottom: 8px; }
+    .case dl { grid-template-columns: 1fr; }
+  }
   .gapmap text { fill: var(--muted); font-size: 12px; }
   .gapmap .qlabel { fill: var(--faint); font-size: 11.5px; }
   .gapmap .name { fill: var(--text); font-size: 12.5px; font-weight: 500; }
@@ -277,7 +307,7 @@
                        font-size: 15px; padding: 8px 0; }
   .mini-search .go { width: 36px; height: 36px; }
   .wrap { width: min(920px, 100%); margin: 0 auto; padding: 28px 16px 80px; }
-  .result-head h1 { font-size: clamp(24px, 3.6vw, 32px); font-weight: 500; letter-spacing: -.02em;
+  .result-head h1 { font-size: clamp(19px, 2.4vw, 23px); font-weight: 500; letter-spacing: -.01em;
                     margin: 0 0 6px; overflow-wrap: anywhere; }
   .meta { color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
   .criteria { margin: 14px 0 0; padding: 12px 14px; background: var(--surface-2); border-radius: 10px;
@@ -537,7 +567,7 @@
     <div class="result-head">
       <h1 id="res-title"></h1>
       <div class="meta" id="res-meta"></div>
-      <p class="criteria" id="res-criteria"></p>
+      <div id="res-criteria"></div>
     </div>
     <div class="tabs" role="tablist" aria-label="Results">
       <button class="tab" role="tab" id="tab-opportunities" aria-controls="panel-opportunities" data-tab="opportunities">Opportunities to contribute</button>
@@ -648,8 +678,10 @@ async function loadOptions() {
   state.lens = o.lenses[store.get("lens", "balanced")] ? store.get("lens", "balanced") : "balanced";
   // Remember what was switched OFF, so sources added in a later version start switched on.
   const off = store.get("sources_off", []);
-  const on = Object.keys(o.sources).filter(s => !off.includes(s));
-  state.sources = on.length ? on : Object.keys(o.sources);
+  const blocked = o.unavailable || {};      // e.g. Google Scholar without a SerpAPI key
+  const usable = Object.keys(o.sources).filter(s => !blocked[s]);
+  const on = usable.filter(s => !off.includes(s));
+  state.sources = on.length ? on : usable;
   showKeyNotice(o);
   if (o.key_status === "unchecked") setTimeout(async () => {  // the server checks the key at startup
     try { const again = await (await fetch("/api/options")).json(); state.options = again; showKeyNotice(again); } catch {}
@@ -659,8 +691,9 @@ async function loadOptions() {
        <svg class="tick" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
        <b>${esc(v.label)}</b><small>${esc(v.summary)}</small></button></li>`).join("");
   $("#lens-label").textContent = o.lenses[state.lens].label;
-  $("#source-toggles").innerHTML = Object.entries(o.sources).map(([k, label]) =>
-    `<button type="button" class="ctl toggle" data-source="${esc(k)}" aria-pressed="${state.sources.includes(k)}">${esc(label)}</button>`).join("");
+  $("#source-toggles").innerHTML = Object.entries(o.sources).map(([k, label]) => blocked[k]
+    ? `<button type="button" class="ctl toggle" data-source="${esc(k)}" aria-pressed="false" disabled title="${esc(blocked[k])}">${esc(label)}</button>`
+    : `<button type="button" class="ctl toggle" data-source="${esc(k)}" aria-pressed="${state.sources.includes(k)}">${esc(label)}</button>`).join("");
 }
 function showKeyNotice(o) {
   const n = $("#key-notice");
@@ -838,18 +871,19 @@ function renderResults(r) {
   const src = r.sources || { counts: {}, errors: {}, labels: {} };
   const found = Object.entries(src.counts).map(([k, n]) => `${esc(src.labels[k] || k)} ${n}`).join(" · ");
   $("#res-meta").innerHTML = [
-    `Search: “${esc(r.query)}”`,
-    r.lens ? `<b style="color:var(--text)">${esc(r.lens.label)} lens</b>` : "",
-    found ? `Found: ${found}` + (Array.isArray(r.trials) ? ` · ${r.trials.length} trials` : "") : "",
-    `${r.n_candidates} candidates` + (r.n_shortlisted ? ` · ${r.n_shortlisted} judged by the LLM` : ""),
-    r.has_llm === false ? "Local models only" : `$${Number(r.cost_usd).toFixed(3)} in API calls`,
+    `“${esc(r.query)}”`,
+    `${r.n_candidates} papers`,
+    r.has_llm === false ? "Local models only" : `$${Number(r.cost_usd).toFixed(2)}`,
     esc(ago(r.created_at)),
   ].filter(Boolean).map(x => `<span>${x}</span>`).join("");
   const failed = Object.entries(src.errors || {});
-  $("#res-criteria").innerHTML = `<b>Relevance criteria:</b> ${esc(r.criteria)}` +
-    (r.lens && r.lens.criteria ? `<br><b>${esc(r.lens.label)} lens:</b> ${esc(r.lens.criteria)}` : "") +
-    (failed.length ? `</p><p class="warn">${failed.map(([k, why]) => `<b>Couldn't use ${esc(src.labels[k] || k)}</b>: ${esc(why)}.`).join("<br>")}
-      Results come from the other sources.` : "");
+  $("#res-criteria").innerHTML = (failed.length ? `<p class="warn">${failed.map(([k, why]) =>
+      `<b>Couldn't use ${esc(src.labels[k] || k)}</b>: ${esc(why)}.`).join("<br>")} Results come from the other sources.</p>` : "") +
+    `<details class="search-details"><summary>Search details</summary>
+      ${found ? `<p>Found: ${found}${Array.isArray(r.trials) ? ` · ${r.trials.length} trials` : ""} · ${r.n_shortlisted || 0} judged by the LLM</p>` : ""}
+      <p><b>Relevance criteria:</b> ${esc(r.criteria)}</p>
+      ${r.lens && r.lens.criteria ? `<p><b>${esc(r.lens.label)} lens:</b> ${esc(r.lens.criteria)}</p>` : ""}
+    </details>`;
   $("#mini-q").value = "";
   renderOpportunities(r); renderPapers(r); renderReview(r); renderTopics(r); renderRubric(r);
   show("results");
@@ -1186,11 +1220,9 @@ function trialsBlock(r) {
       : "ClinicalTrials.gov had no studies matching this search. Shorter keywords (a condition plus an intervention) work best there."}</p></details>`;
   const active = ["Recruiting", "Not yet recruiting", "Enrolling by invitation", "Active not recruiting"];
   const stopped = ["Terminated", "Withdrawn", "Suspended"];
-  return `<h2 class="sub">Evidence: registered trials</h2>
-    <p class="method" style="margin-top:0">${r.trials.length} matching studies on ClinicalTrials.gov, ${withResults} with results posted.
-      Trials show where clinical attention and funding are going. A registration says what a team planned, not what it found,
-      so trials are never ranked as papers.</p>
-    <details class="checks"><summary>Show the ${r.trials.length} trials</summary>
+  return `<details class="more"><summary>Registered trials (${r.trials.length}, ${withResults} with results)</summary>
+    <p class="method" style="margin-top:0">Trials show where clinical attention and funding are going. A registration says what a
+      team planned, not what it found, so trials are never ranked as papers.</p>
     ${r.trials.map(t => `<article class="trial">
       <h3><a href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.title)}</a></h3>
       <div class="byline">${esc(t.nct_id)}${t.sponsor ? " · " + esc(t.sponsor) : ""}${t.start ? " · started " + esc(t.start) : ""}${t.completion ? " · primary completion " + esc(t.completion) : ""}</div>
@@ -1207,71 +1239,91 @@ function trialsBlock(r) {
     </article>`).join("")}</details>`;
 }
 
-function fieldRead(r, o) {
+function plain(text) { return String(text || "").replace(/\s*\[\d+(?:\s*[,–-]\s*\d+)*\]/g, ""); }
+function firstSentence(text) { return plain(text).split(/(?<=[.!?])\s/)[0]; }
+function headlineOf(text) {
+  // Older saved runs have no headline: use the first clause, at most twelve words.
+  const words = firstSentence(text).split(/[:;—]/)[0].replace(/[.!?]$/, "").split(/\s+/);
+  return words.length > 12 ? words.slice(0, 12).join(" ") + "…" : words.join(" ");
+}
+
+function fieldStats(r) {
+  // Four numbers, no paragraphs: where this topic sits in the research landscape.
   const f = r.landscape;
   if (!f) return "";
   const m = f.metrics || {}, s = f.scores || {}, q = f.quality || {};
-  const ranked = !!f.quadrant;
-  return `<div class="field-read">
-    <h3>Field: ${esc(f.label)} ${f.signal ? `<span class="sig ${esc(f.signal)}">${esc(f.signal)}</span>` : ""}
-      ${ranked ? `<span class="tag level">${esc(f.quadrant)}</span>` : `<span class="tag">Provisional, not ranked yet</span>`}</h3>
-    ${(f.also || []).length ? `<p style="margin:0 0 6px">Also in: ${f.also.map(a => `<b>${esc(a.label)}</b>${a.quadrant ? ` (${esc(a.quadrant)})` : " (provisional)"}`).join(" · ")}</p>` : ""}
-    ${o && o.field_read ? `<p style="margin:0">${esc(o.field_read)}</p>` : ""}
-    ${ranked ? `<div class="kv">
-      <span>Momentum <b>${fmt(m.momentum, 0)}</b></span><span>Crowding <b>${fmt(m.crowding, 0)}</b></span>
-      <span>ML whitespace <b>${fmt(m.whitespace, 0)}</b></span><span>Entry score <b>${fmt(s.entry_score, 1)}</b></span>
-      <span>Warrant gap <b>${q.warrant_gap == null ? "–" : Math.round(q.warrant_gap * 100) + "%"}</b></span>
-      <span>Searches so far <b>${q.observations || 0}</b></span></div>
-      <p class="note" style="margin:8px 0 0">Percentiles among the mapped healthcare AI fields (0–100). Warrant gap = share of extracted papers without external validation.
-        <a href="#how" data-how>How these are scored</a> · <a href="/landscape" target="_blank" rel="noopener">Landscape map ↗</a></p>` : ""}
-  </div>`;
+  const n = x => x == null ? "–" : Math.round(x);
+  const tiles = f.quadrant ? [
+    [`<b class="word">${esc(f.quadrant)}</b>`, "Regime"],
+    [`<b>${n(m.momentum)}</b>`, "Momentum, of 100"],
+    [`<b>${n(m.crowding)}</b>`, "Crowding, of 100"],
+    [`<b>${q.warrant_gap == null ? "–" : Math.round(q.warrant_gap * 100) + "%"}</b>`, "Not externally validated"],
+  ] : [[`<b class="word">New field</b>`, "Not ranked yet"]];
+  const also = (f.also || []).map(a => esc(a.label)).join(", ");
+  return `<div class="kpis">${tiles.map(([v, l]) => `<div class="kpi">${v}<span>${l}</span></div>`).join("")}</div>
+    <p class="kpi-note">${esc(f.label)}${f.signal ? ` · ${esc(f.signal)}` : ""}${f.quadrant ? ` · entry score ${fmt(s.entry_score, 0)}` : ""}${also ? ` · also in ${also}` : ""}
+      · <a href="#how" data-how>How we score</a> · <a href="/landscape" target="_blank" rel="noopener">Map ↗</a></p>`;
+}
+
+function claimsLine(c) {
+  if (!c || !c.claims || !c.claims.length) return "";
+  const ok = c.claims.filter(x => x.verdict === "supported").length;
+  return `<span>✓ <b>${ok} of ${c.claims.length}</b> claims check out</span>`;
 }
 
 function renderOpportunities(r) {
   const o = r.opportunities;
+  const kicker = `<p class="kicker">Opportunities to contribute</p>`;
   if (!o) {
-    $("#panel-opportunities").innerHTML = fieldRead(r, null) + `<div class="empty-state"><h2>${r.has_llm === false
-      ? "Opportunities need an API key" : "Opportunities weren't written for this search"}</h2>
-      <p>${r.has_llm === false ? `This search ran without <code>ANTHROPIC_API_KEY</code>. The gap map on the
-        <b>Topic clusters</b> tab still shows which topics are small and growing.`
-        : "This search was saved before the Opportunities tab existed, or the step failed. Run the search again to get them."}</p></div>` + trialsBlock(r);
+    $("#panel-opportunities").innerHTML = `<section class="hero">${kicker}
+      <h2 class="hero-h">${r.has_llm === false ? "Add an API key to see opportunities" : "No opportunities for this search yet"}</h2>
+      <p class="hero-sub">${r.has_llm === false
+        ? "This search ran on the local models only. The gap map on Topic clusters still shows which topics are small and growing."
+        : "It was saved before this tab existed, or the step failed. Run the search again."}</p></section>
+      ${fieldStats(r)}${trialsBlock(r)}`;
     return;
   }
-  const strength = { strong: "Strong evidence", moderate: "Moderate evidence", weak: "Thin evidence" };
+  const strength = { strong: "Strong", moderate: "Moderate", weak: "Thin" };
   const prev = (r.landscape && r.landscape.previous_opportunities) || [];
   const now = new Set(o.gaps.map(g => g.title.toLowerCase()));
   const earlier = prev.filter(x => !now.has(x.title.toLowerCase()));
+  const v = o.verification;
   $("#panel-opportunities").innerHTML = `
-    <p class="overview">${citeLinks(o.bottom_line, r)}</p>
-    ${fieldRead(r, o)}
-    ${verifyBanner(o.verification)}
-    ${o.gaps.map((g, i) => `<article class="opp-card" aria-labelledby="gap-${i}">
-      <h2 id="gap-${i}"><span class="num">${i + 1}</span><span>${esc(g.title)}</span></h2>
-      <div class="opp-meta">
-        ${g.evidence_strength ? `<span class="tag ${g.evidence_strength === "strong" ? "evidence" : ""}">${strength[g.evidence_strength]}</span>` : ""}
-        ${g.cluster != null ? `<button class="chip-btn" type="button" data-cluster="${g.cluster}"><span class="dot" style="background:${color(g.cluster)}"></span>${esc(clusterName(r, g.cluster))} · see on gap map</button>` : ""}
-        ${g.mvp.difficulty ? `<span class="tag">MVP difficulty: ${esc(g.mvp.difficulty)}</span>` : ""}
-        ${g.mvp.effort_weeks ? `<span class="tag">~${g.mvp.effort_weeks} weeks</span>` : ""}
-        ${checkChip(g.check)}
-      </div>
-      <h4>Why it's open</h4><p>${citeLinks(g.why_open, r)}</p>
-      <h4>Why it still holds</h4><p>${citeLinks(g.defense, r)}</p>
-      ${g.angles.length ? `<h4>Angles</h4><ul class="angles">${g.angles.map(a => `<li><b>${esc(a.angle)}.</b> ${esc(a.how)}</li>`).join("")}</ul>` : ""}
-      <div class="mvp"><h3>MVP: ${esc(g.mvp.title)}</h3><dl>
-        <dt>Question</dt><dd>${esc(g.mvp.question)}</dd>
-        <dt>Data</dt><dd>${esc(g.mvp.data)}</dd>
-        <dt>Method</dt><dd>${esc(g.mvp.method)}</dd>
-        <dt>Validation</dt><dd>${esc(g.mvp.validation)}</dd>
-        <dt>Why it signals quality</dt><dd>${esc(g.mvp.signal)}</dd></dl></div>
-      ${checkDetails(g.check, r)}
-    </article>`).join("")}
-    ${earlier.length ? `<h2 class="sub">Gaps earlier searches found in this field</h2>
-      <p class="method" style="margin-top:0">The landscape remembers them, and each new search in the field is asked to confirm, sharpen or retire them.</p>
-      <ul class="plain-list">${earlier.slice().reverse().map(x => `<li><b>${esc(x.title)}</b>${x.mvp ? ` · MVP: ${esc(x.mvp)}` : ""} <span style="color:var(--faint)">(${esc(x.date)}, “${esc(x.topic)}”)</span></li>`).join("")}</ul>` : ""}
+    <section class="hero">${kicker}
+      <h2 class="hero-h">${esc(o.headline || headlineOf(o.bottom_line))}</h2>
+      <p class="hero-sub">${citeLinks(o.bottom_line, r)}</p>
+    </section>
+    ${fieldStats(r)}
+    <ol class="opps">${o.gaps.map((g, i) => `<li class="opp">
+      <div class="opp-num" aria-hidden="true">${String(i + 1).padStart(2, "0")}</div>
+      <div>
+        <h3 class="opp-h">${esc(g.title)}</h3>
+        <p class="opp-pitch">${esc(g.pitch || firstSentence(g.why_open))}</p>
+        <div class="opp-facts">
+          ${g.mvp.effort_weeks ? `<span><b>~${g.mvp.effort_weeks} weeks</b></span>` : ""}
+          ${g.mvp.difficulty ? `<span><b>${esc(g.mvp.difficulty[0].toUpperCase() + g.mvp.difficulty.slice(1))}</b> difficulty</span>` : ""}
+          ${g.evidence_strength ? `<span><b>${strength[g.evidence_strength]}</b> evidence</span>` : ""}
+          ${claimsLine(g.check)}
+          ${g.cluster != null ? `<button class="chip-btn" type="button" data-cluster="${g.cluster}"><span class="dot" style="background:${color(g.cluster)}"></span>On the gap map</button>` : ""}
+        </div>
+        <div class="starter"><span class="label">Starter project</span>
+          <p class="starter-h">${esc(g.mvp.title)}</p><p>${esc(g.mvp.question)}</p></div>
+        <details class="case"><summary>See the case</summary>
+          <h4>Why it's open</h4><p>${citeLinks(g.why_open, r)}</p>
+          <h4>Why it still holds</h4><p>${citeLinks(g.defense, r)}</p>
+          ${g.angles.length ? `<h4>Angles</h4><ul class="angles">${g.angles.map(a => `<li><b>${esc(a.angle)}.</b> ${esc(a.how)}</li>`).join("")}</ul>` : ""}
+          <h4>The starter project</h4><dl>
+            <dt>Data</dt><dd>${esc(g.mvp.data)}</dd><dt>Method</dt><dd>${esc(g.mvp.method)}</dd>
+            <dt>Validation</dt><dd>${esc(g.mvp.validation)}</dd><dt>Why it signals quality</dt><dd>${esc(g.mvp.signal)}</dd></dl>
+          ${checkDetails(g.check, r)}
+        </details>
+      </div></li>`).join("")}</ol>
+    ${earlier.length ? `<details class="more"><summary>Earlier ideas in this field (${earlier.length})</summary>
+      <ul class="plain-list">${earlier.slice().reverse().map(x => `<li><b>${esc(x.title)}</b>${x.mvp ? ` · ${esc(x.mvp)}` : ""} <span style="color:var(--faint)">(${esc(x.date)})</span></li>`).join("")}</ul></details>` : ""}
     ${trialsBlock(r)}
-    <p class="note">Written by ${esc(o.model)} from the extractions of the top ${r.papers.length} papers, the topic clusters, the registered
-      trials and this field's place in the research landscape. ${o.verification ? `Each gap's argument was audited by a separate checker
-      (${esc(o.verification.model)}) that sees only the papers' abstracts and evidence quotes.` : ""} Treat these as hypotheses to test, not conclusions.</p>`;
+    <p class="note">${o.field_read ? esc(plain(o.field_read)) + " " : ""}Written by ${esc(o.model)} from the top ${r.papers.length} papers, the topic clusters,
+      registered trials and the research landscape.${v && v.total ? ` A separate checker confirmed ${v.supported} of ${v.total} cited claims.` : ""}
+      Treat these as hypotheses to test.</p>`;
 }
 
 function renderRubric(r) {

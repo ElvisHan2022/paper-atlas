@@ -6,6 +6,7 @@ literature. The independent checker in pipeline.py then audits those claims, so 
 held to the same standard as the review.
 """
 import json
+import re
 from datetime import date
 
 import config
@@ -50,10 +51,12 @@ study on data a student can get (for example a calibrated classifier with extern
 on MIMIC-IV); sophistication is optional.
 
 Return JSON only:
-{{"bottom_line": "<2-3 sentences: how open this space is and the single best way in>",
+{{"headline": "<the verdict as a headline, at most 10 words, no citations>",
+  "bottom_line": "<2-3 sentences: how open this space is and the single best way in>",
   "field_read": "<1-2 sentences reading the landscape numbers above in plain words>",
   "gaps": [{{
     "title": "<the gap, at most 10 words>",
+    "pitch": "<why it matters, one plain sentence of at most 20 words, no citations>",
     "cluster": <cluster number from the list above, or null>,
     "why_open": "<2-4 sentences on why this is unsolved, citing papers as [n]>",
     "defense": "<the strongest objection (e.g. 'someone already did this') and why the gap still holds, citing [n]>",
@@ -172,6 +175,14 @@ def valid_opportunities(d):
     return True
 
 
+def short(text, fallback, limit=160):
+    """Display text for the page's large type: the model's short version, or the first
+    sentence of the long one with its citations removed."""
+    text = text if isinstance(text, str) and text.strip() else re.split(r"(?<=[.!?])\s", fallback.strip())[0]
+    text = re.sub(r"\s*\[\d+(?:\s*[,–-]\s*\d+)*\]", "", text).strip()
+    return text if len(text) <= limit else text[:limit - 1].rsplit(" ", 1)[0] + "…"
+
+
 def clean(d, n_clusters):
     """Normalize the model's JSON into what the UI renders (clusters become 0-based)."""
     gaps = []
@@ -180,7 +191,8 @@ def clean(d, n_clusters):
         mvp = g["mvp"]
         weeks = mvp.get("effort_weeks")
         gaps.append({
-            "title": g["title"].strip(), "why_open": g["why_open"], "defense": g["defense"],
+            "title": g["title"].strip(), "pitch": short(g.get("pitch"), g["why_open"]),
+            "why_open": g["why_open"], "defense": g["defense"],
             "cluster": c - 1 if isinstance(c, int) and 1 <= c <= n_clusters else None,
             "evidence_strength": g.get("evidence_strength") if g.get("evidence_strength") in STRENGTH else None,
             "angles": [{"angle": str(a.get("angle", "")), "how": str(a.get("how", ""))}
@@ -189,7 +201,8 @@ def clean(d, n_clusters):
                     "effort_weeks": weeks if isinstance(weeks, int) and weeks > 0 else None,
                     "difficulty": mvp.get("difficulty") if mvp.get("difficulty") in DIFFICULTY else None},
         })
-    return {"bottom_line": d["bottom_line"], "field_read": d["field_read"], "gaps": gaps,
+    return {"headline": short(d.get("headline"), d["bottom_line"], 90),
+            "bottom_line": d["bottom_line"], "field_read": d["field_read"], "gaps": gaps,
             "model": config.OPPORTUNITY_MODEL, "date": date.today().isoformat()}
 
 

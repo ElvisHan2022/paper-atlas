@@ -22,6 +22,7 @@ This opens http://127.0.0.1:8000. Type a topic or a few keywords. Under the sear
 
 - **Sources:**
   - **Papers:** PubMed, OpenAlex (an open index of essentially every journal: Nature, Nature Medicine, Cell, NEJM…), medRxiv / bioRxiv and other preprint servers (through Europe PMC, because the bioRxiv API has no keyword search), Semantic Scholar, and arXiv. Papers found in more than one are merged by DOI or title.
+  - **Google Scholar (optional):** Scholar has no API and blocks automated scraping, so results come through [SerpAPI](https://serpapi.com), a paid service. Add `SERPAPI_KEY=...` to `.env` to switch it on; without a key its toggle is greyed out. Scholar returns snippets rather than abstracts, so it is merged last: other sources supply the real abstract when they have the same paper, and Scholar adds its citation count.
   - **ClinicalTrials.gov:** matching registered trials appear in their own **Clinical trials** tab. They aren't mixed into the paper ranking or the review, because a registration says what a team planned to study, not what it found.
 - **Evidence lens:** different journals reward different work, so the lens tells the LLM judge what to value on top of relevance:
   - **Balanced:** relevance only.
@@ -50,7 +51,7 @@ Two rules from that guidance shape the rest:
 - **Failure is cheap.** Every step is logged to `outputs/runs/<run>.log.jsonl` as it happens, and HTTP and LLM answers are cached, so re-running a failed search replays the finished steps for free. The log is shown at the bottom of the Scoring tab.
 
 Results open on **Opportunities to contribute**. Everything after it is the evidence behind it:
-- **Opportunities to contribute:** three research gaps for this topic. Each one says why it is open (citing the papers), answers the strongest objection, offers 2–3 angles in, and proposes an MVP project (question, data, method, validation, why it signals quality, rough effort). The same independent checker audits each gap's cited claims. The tab also shows where the topic's field sits in the research landscape, the gaps earlier searches in that field proposed (the landscape remembers them), and matching registered trials from ClinicalTrials.gov as evidence.
+- **Opportunities to contribute:** a one-line verdict, four numbers placing the topic in the research landscape, and three research gaps for this topic. Each one says why it is open (citing the papers), answers the strongest objection, offers 2–3 angles in, and proposes an MVP project (question, data, method, validation, why it signals quality, rough effort). The same independent checker audits each gap's cited claims. The tab also shows where the topic's field sits in the research landscape, the gaps earlier searches in that field proposed (the landscape remembers them), and matching registered trials from ClinicalTrials.gov as evidence.
 - **Topic clusters:** a gap map (each topic's size against how much of it is from the last two years; small and growing means likely gaps, with the opportunities marked), plus a line chart of how each topic grew.
 - **Review:** five sections (study design, methods, results, limitations, discussion), with every claim linked to its papers and marked by the independent check.
 - **Papers:** the top 10, with scores, the judge's reasoning, evidence type (RCT, meta-analysis…) and venue type.

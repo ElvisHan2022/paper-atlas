@@ -78,3 +78,15 @@ def test_gaps_are_remembered_per_field_without_duplicates(sandbox):  # noqa: F81
     field = next(f for f in landscape.load_fields()["fields"] if f["id"] == "dataset_shift")
     assert len(field["opportunities"]) == config.LANDSCAPE_MAX_OPPORTUNITIES
     assert landscape.record_opportunities("no_such_field", "t", [gap]) == []
+
+
+def test_short_display_text_falls_back_to_the_first_sentence_without_citations():
+    out = opportunities.clean(REPLY, n_clusters=2)      # REPLY has no headline or pitch
+    assert out["headline"] == "Open."
+    assert out["gaps"][0]["pitch"] == "Methods are validated on one site."
+    given = {**REPLY, "headline": "Monitoring is open ground",
+             "gaps": [{**GAP, "pitch": "Nobody checks models after launch [2]."}]}
+    out = opportunities.clean(given, n_clusters=2)
+    assert out["headline"] == "Monitoring is open ground"
+    assert out["gaps"][0]["pitch"] == "Nobody checks models after launch."
+
